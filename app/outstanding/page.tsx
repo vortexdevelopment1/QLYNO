@@ -87,7 +87,7 @@ export default function OutstandingPage() {
     <div>
       <PageHeader
         title="Outstanding Balances"
-        description="Unpaid and partially paid invoices. PRD Section 11 requires both patient-wise and invoice-wise views with ageing."
+        description="Overview of unpaid and partially paid invoices categorized by ageing buckets and patient balance breakdown."
         actions={
           <div className="flex overflow-hidden rounded-lg border border-ink-200 bg-white">
             <button

@@ -63,7 +63,7 @@ export function DischargeSettlementModal({ open, onClose }: DischargeSettlementM
     >
       <div className="space-y-4">
         <div className="rounded-lg bg-blue-50 p-3 text-xs text-blue-900 border border-blue-200">
-          <p className="font-semibold">PRD Section 18 — Hospital Patient Discharge Integration</p>
+          <p className="font-semibold">Hospital Patient Discharge Settlement Policy</p>
           <p className="mt-0.5">
             Integrates final billing and settlement before patient discharge. Reconciles all pending OPD, IPD, lab, pharmacy, and room charges.
           </p>

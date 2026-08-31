@@ -45,8 +45,8 @@ export function WorkflowStepper({ status }: { status: InvoiceStatus }) {
   return (
     <div className="rounded-xl border border-ink-100 bg-white p-4 shadow-card">
       <div className="mb-3 flex items-center justify-between border-b border-ink-100 pb-2">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-ink-600">
-          PRD Section 7 — 12-Step Billing Workflow
+        <h3 id="workflow-stepper-heading" className="text-xs font-bold uppercase tracking-wider text-ink-500">
+          12-Step Billing Lifecycle
         </h3>
         <span className="text-xs font-semibold text-brand-600">
           Step {currentStep} of 12 ({STEPS[currentStep - 1]?.title})

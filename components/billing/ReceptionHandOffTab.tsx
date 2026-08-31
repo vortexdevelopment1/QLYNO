@@ -99,7 +99,7 @@ export function ReceptionHandOffTab() {
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-brand-100 bg-brand-50/60 p-4 text-xs text-brand-900">
-        <p className="font-semibold text-brand-900">PRD Section 19 — Reception + Billing Staff Coordination Matrix</p>
+        <p className="font-semibold text-brand-900">Reception &amp; Billing Staff Coordination Matrix</p>
         <p className="mt-1 text-brand-700">
           Reception and Billing are separate staff roles sharing the same organization workflow. Billing Staff consumes billable events handed off by Reception and clinical departments.
         </p>

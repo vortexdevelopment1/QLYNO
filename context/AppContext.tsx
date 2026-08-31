@@ -74,6 +74,7 @@ type Action =
   | { type: "COMPLETE_REFUND"; refundId: string; processor: string }
   | { type: "RESOLVE_EXCEPTION"; reconId: string; excId: string; notes: string; user: string }
   | { type: "SEND_REMINDER"; invoice: Invoice }
+  | { type: "INVITE_STAFF"; staff: StaffUser }
   | { type: "UPDATE_STAFF_STATUS"; staffId: string; status: StaffUser["status"] }
   | { type: "REVERSE_PAYMENT"; paymentId: string; reason: string; user: string }
   | { type: "UPDATE_STAFF_SCOPES"; staffId: string; scopes: BillingScope[] }
@@ -242,6 +243,10 @@ function reducer(state: AppState, action: Action): AppState {
     case "APPROVE_DISCOUNT": {
       const discount = state.discounts.find((d) => d.id === action.discountId);
       if (!discount) return state;
+      if (action.approver === discount.requestedBy) {
+        alert("Self-approval is prohibited. Higher discounts and restricted refunds must be approved by another authorized user.");
+        return state;
+      }
       const invoices = state.invoices.map((inv) => {
         if (inv.id !== discount.invoiceId) return inv;
         const discountTotal = inv.discountTotal + discount.amount;
@@ -286,6 +291,10 @@ function reducer(state: AppState, action: Action): AppState {
       };
     case "APPROVE_REFUND": {
       const refund = state.refunds.find((r) => r.id === action.refundId);
+      if (refund && action.approver === refund.requestedBy) {
+        alert("Self-approval is prohibited. Higher discounts and restricted refunds must be approved by another authorized user.");
+        return state;
+      }
       const nextStatus: RefundStatus = "approved";
       return {
         ...state,
@@ -358,11 +367,41 @@ function reducer(state: AppState, action: Action): AppState {
           ...state.notifications,
         ],
       };
-    case "UPDATE_STAFF_STATUS":
+    case "INVITE_STAFF": {
+      const org = state.organizations.find((o) => o.id === action.staff.organizationId);
+      if (org && (org.type === "solo_doctor" || org.type === "clinic")) {
+        const activeCount = state.staffUsers.filter(
+          (u) => u.organizationId === org.id && u.status === "active" && u.id !== action.staff.id
+        ).length;
+        if (activeCount >= 1 && action.staff.status === "active") {
+          // Keep invited/pending if active assignment exists, or alert
+          alert(`${org.type === "solo_doctor" ? "Solo Doctor" : "Clinic"} organizations are capped at exactly one active Billing Staff assignment. Remove or suspend the current active assignment before adding a new active one.`);
+        }
+      }
+      return {
+        ...state,
+        staffUsers: [action.staff, ...state.staffUsers],
+      };
+    }
+    case "UPDATE_STAFF_STATUS": {
+      const staff = state.staffUsers.find((u) => u.id === action.staffId);
+      if (staff && action.status === "active") {
+        const org = state.organizations.find((o) => o.id === staff.organizationId);
+        if (org && (org.type === "solo_doctor" || org.type === "clinic")) {
+          const activeCount = state.staffUsers.filter(
+            (u) => u.organizationId === org.id && u.status === "active" && u.id !== staff.id
+          ).length;
+          if (activeCount >= 1) {
+            alert(`${org.type === "solo_doctor" ? "Solo Doctor" : "Clinic"} organizations can only have one active Billing Staff assignment at a time. Please suspend or remove the current active staff first.`);
+            return state;
+          }
+        }
+      }
       return {
         ...state,
         staffUsers: state.staffUsers.map((u) => (u.id === action.staffId ? { ...u, status: action.status } : u)),
       };
+    }
     case "UPDATE_STAFF_SCOPES":
       return {
         ...state,

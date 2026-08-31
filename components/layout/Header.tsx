@@ -236,7 +236,7 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
                   <p className="font-bold text-ink-900">Qlyno Support &amp; Rules</p>
                 </div>
                 <p className="text-xs text-ink-600 leading-relaxed">
-                  Billing rules, discounts, refund approvals, and audit trails follow PRD Section 6.
+                  Billing workflows, discount controls, refund approvals, and audit trails are managed within your organization policy.
                 </p>
                 <div className="mt-3 border-t border-ink-100 pt-2 text-[11px] text-ink-400">
                   Active context: <strong className="text-ink-700">{currentOrg.name}</strong> ({ORG_TYPE_LABEL[currentOrg.type]})

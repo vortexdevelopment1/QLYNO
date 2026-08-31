@@ -33,6 +33,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
       items: [
         { href: "/billing/pending", label: "Pending Billing", icon: "◷", visible: p.viewBills },
         { href: "/billing/invoices", label: "Billing / Invoices", icon: "▤", visible: p.viewBills },
+        { href: "/discharge", label: "Discharge Billing", icon: "⌂", visible: currentOrg.type === "hospital" && p.viewBills },
         { href: "/payments", label: "Payments", icon: "₹", visible: p.collectPayment },
         { href: "/outstanding", label: "Outstanding", icon: "!", visible: p.viewBills },
         { href: "/receipts", label: "Receipts", icon: "▥", visible: p.viewBills },

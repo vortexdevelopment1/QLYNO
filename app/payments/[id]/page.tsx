@@ -38,7 +38,6 @@ export default function PaymentDetailPage() {
           <div><p className="text-xs text-ink-400">Date</p><p className="font-medium text-ink-800">{formatDateTime(payment.date)}</p></div>
           {payment.notes && <div><p className="text-xs text-ink-400">Notes</p><p className="font-medium text-ink-800">{payment.notes}</p></div>}
         </div>
-        {payment.failureReason && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{payment.failureReason}</p>}
         <div className="flex flex-wrap gap-3 pt-2">
           {receipt && (
             <button onClick={() => router.push(`/receipts/${receipt.id}`)} className="rounded-lg border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50">
@@ -47,7 +46,7 @@ export default function PaymentDetailPage() {
           )}
           {payment.status === "success" && (
             <button onClick={() => setReverseOpen(true)} className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100">
-              Reverse Payment (PRD Sec 10)
+              Reverse Payment
             </button>
           )}
         </div>

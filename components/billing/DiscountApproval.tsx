@@ -26,7 +26,11 @@ export function DiscountApproval({ discount }: { discount: Discount }) {
         <span>{formatDateTime(discount.requestedAt)}</span>
       </div>
       {discount.approvalStatus === "pending" && (
-        canApprove ? (
+        currentUser.name === discount.requestedBy ? (
+          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 border border-amber-200">
+            🔒 <strong>Approval Required:</strong> You requested this discount. Higher discounts must be approved by another authorized admin.
+          </p>
+        ) : canApprove ? (
           <div className="mt-3 flex gap-2 border-t border-ink-100 pt-3">
             <button
               onClick={() => dispatch({ type: "APPROVE_DISCOUNT", discountId: discount.id, approver: currentUser.name })}

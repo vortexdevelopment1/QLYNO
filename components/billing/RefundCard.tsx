@@ -32,7 +32,11 @@ export function RefundCard({ refund }: { refund: Refund }) {
 
       <div className="mt-3 flex flex-wrap gap-2 border-t border-ink-100 pt-3">
         {refund.status === "requested" && refund.requiresApproval && (
-          canApprove ? (
+          currentUser.name === refund.requestedBy ? (
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 border border-amber-200 w-full">
+              🔒 <strong>Approval Required:</strong> You requested this refund. Restricted refunds must be approved by another authorized admin.
+            </p>
+          ) : canApprove ? (
             <>
               <button onClick={() => dispatch({ type: "APPROVE_REFUND", refundId: refund.id, approver: currentUser.name })} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">Approve</button>
               <button onClick={() => dispatch({ type: "REJECT_REFUND", refundId: refund.id, approver: currentUser.name })} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">Reject</button>

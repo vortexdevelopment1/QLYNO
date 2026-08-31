@@ -74,7 +74,7 @@ export function EditStaffScopesModal({ open, onClose, staffUser }: EditStaffScop
     >
       <div className="space-y-3">
         <p className="text-xs text-ink-500">
-          PRD Section 15 — Hospital Billing Staff can hold one or more permitted scopes. Scope assignments limit staff visibility to specific hospital departments.
+          Hospital Billing Staff can hold one or more permitted scopes. Scope assignments limit staff visibility to specific hospital departments.
         </p>
 
         <div className="grid grid-cols-2 gap-2">

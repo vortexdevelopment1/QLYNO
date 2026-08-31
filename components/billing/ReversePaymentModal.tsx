@@ -55,7 +55,7 @@ export function ReversePaymentModal({ open, onClose, payment }: ReversePaymentMo
     >
       <div className="space-y-3">
         <div className="rounded-lg bg-red-50 p-3 text-xs text-red-800 border border-red-200">
-          <p className="font-semibold">PRD Section 10 — Controlled Payment Reversal Workflow</p>
+          <p className="font-semibold">Controlled Payment Reversal Policy</p>
           <p className="mt-0.5">
             Reversing this payment of <span className="font-bold">{formatINR(payment.amount)}</span> will restore the invoice outstanding balance. Financial records are never hard-deleted.
           </p>

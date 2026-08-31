@@ -51,7 +51,7 @@ export function InsuranceClaimDocsModal({ open, onClose, claim }: InsuranceClaim
     >
       <div className="space-y-4">
         <p className="text-xs text-ink-500">
-          PRD Section 14 — Insurance/TPA claims require specific supporting billing documents before submission and settlement.
+          Insurance/TPA claims require specific supporting billing documents before submission and settlement.
         </p>
 
         <div>

@@ -1,7 +1,7 @@
 import { EmptyState } from "./EmptyState";
 
 export interface Column<T> {
-  header: string;
+  header: React.ReactNode;
   accessor: (row: T) => React.ReactNode;
   className?: string;
 }
@@ -25,8 +25,8 @@ export function DataTable<T>({ columns, rows, rowKey, emptyTitle = "No records f
       <table className="w-full min-w-[640px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-ink-100 bg-ink-50/70 text-left">
-            {columns.map((col) => (
-              <th key={col.header} scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-ink-500">
+            {columns.map((col, idx) => (
+              <th key={idx} scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-ink-500">
                 {col.header}
               </th>
             ))}
@@ -43,8 +43,8 @@ export function DataTable<T>({ columns, rows, rowKey, emptyTitle = "No records f
                   : "transition-colors hover:bg-ink-50/40"
               }
             >
-              {columns.map((col) => (
-                <td key={col.header} className={`px-4 py-3.5 align-middle text-ink-800 ${col.className ?? ""}`}>
+              {columns.map((col, idx) => (
+                <td key={idx} className={`px-4 py-3.5 align-middle text-ink-800 ${col.className ?? ""}`}>
                   {col.accessor(row)}
                 </td>
               ))}
