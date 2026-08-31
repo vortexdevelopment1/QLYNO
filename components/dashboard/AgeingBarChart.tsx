@@ -67,10 +67,10 @@ export function AgeingBarChart({ invoices }: AgeingBarChartProps) {
           return (
             <div key={bucket.key} className="group relative flex h-full flex-1 flex-col items-center justify-end">
               {/* Tooltip on hover */}
-              <div className="pointer-events-none absolute -top-12 z-20 hidden flex-col items-center whitespace-nowrap rounded-lg bg-ink-900 px-2.5 py-1.5 text-xs text-white shadow-xl transition-all group-hover:flex">
+              <div className="pointer-events-none absolute -top-12 z-20 hidden flex-col items-center whitespace-nowrap rounded-lg border border-ink-200 bg-white px-2.5 py-1.5 text-xs text-ink-900 shadow-xl transition-all group-hover:flex">
                 <span className="font-semibold">{bucket.label}</span>
                 <span>{formatINR(bucket.amount)} ({bucket.count} inv · {percentOfTotal}%)</span>
-                <div className="absolute -bottom-1 h-2 w-2 rotate-45 bg-ink-900" />
+                <div className="absolute -bottom-1 h-2 w-2 rotate-45 border-b border-r border-ink-200 bg-white" />
               </div>
 
               {/* Amount label above bar */}

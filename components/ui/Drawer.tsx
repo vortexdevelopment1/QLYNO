@@ -44,7 +44,7 @@ export function Drawer({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex justify-end bg-ink-950/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9999] flex justify-end bg-ink-900/30 backdrop-blur-xs animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
