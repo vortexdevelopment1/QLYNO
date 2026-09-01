@@ -81,14 +81,26 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
   const content = (
     <nav aria-label="Primary" className="flex min-h-full flex-col bg-white text-ink-800">
       {/* Brand Shell Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-ink-100 bg-gradient-to-r from-brand-50/50 via-white to-white">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-brand-600 to-brand-500 text-base font-black text-white shadow-sm ring-2 ring-brand-100">
-          Q
+      <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-ink-100 bg-gradient-to-r from-brand-50/50 via-white to-white">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-brand-600 to-brand-500 text-base font-black text-white shadow-sm ring-2 ring-brand-100">
+            Q
+          </div>
+          <div>
+            <p className="text-sm font-bold text-ink-900 tracking-tight">Qlyno Billing</p>
+            <p className="text-[11px] font-semibold text-brand-600">Healthcare Staff Portal</p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-bold text-ink-900 tracking-tight">Qlyno Billing</p>
-          <p className="text-[11px] font-semibold text-brand-600">Healthcare Staff Portal</p>
-        </div>
+        <button
+          type="button"
+          onClick={onCloseMobile}
+          aria-label="Close navigation panel"
+          className="rounded-lg p-1.5 text-ink-400 hover:bg-ink-100 hover:text-ink-700 lg:hidden transition-colors"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       {/* Grouped Navigation */}
@@ -112,7 +124,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
                         onClick={onCloseMobile}
                         aria-current={active ? "page" : undefined}
                         className={classNames(
-                          "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400",
+                          "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400",
                           active
                             ? "bg-brand-50 text-brand-700 font-bold border-l-4 border-brand-600 shadow-2xs"
                             : "text-ink-600 font-medium hover:bg-brand-50/60 hover:text-brand-700"

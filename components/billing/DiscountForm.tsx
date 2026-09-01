@@ -82,9 +82,9 @@ export function DiscountForm({ invoiceId: fixedInvoiceId, onCancel, onDone }: { 
         </p>
       )}
 
-      <div className="flex justify-end gap-3 border-t border-ink-100 pt-4">
-        <button type="button" onClick={onCancel} className="rounded-lg border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={!invoice} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">Apply Discount</button>
+      <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 border-t border-ink-100 pt-4">
+        <button type="button" onClick={onCancel} className="w-full sm:w-auto rounded-lg border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50">Cancel</button>
+        <button type="button" onClick={submit} disabled={!invoice} className="w-full sm:w-auto rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">Apply Discount</button>
       </div>
     </div>
   );

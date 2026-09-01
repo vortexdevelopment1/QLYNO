@@ -23,6 +23,7 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [dailyCollectionOpen, setDailyCollectionOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const orgStaff = staffUsers.filter((u) => u.organizationId === currentOrg.id);
   const showScopeSwitcher = currentOrg.type === "hospital" && currentUser.scopes.length > 1;
@@ -77,38 +78,38 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
 
   return (
     <header className="sticky top-0 z-30 border-b border-ink-100 bg-white/95 backdrop-blur-md shadow-xs">
-      <div className="flex items-center justify-between gap-4 px-4 py-3 lg:px-6">
+      <div className="flex items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6">
 
         {/* Left: Mobile Toggle & Organization Context */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             type="button"
             onClick={onOpenMobileNav}
             aria-label="Open navigation"
-            className="rounded-lg p-2 text-ink-600 hover:bg-ink-100 hover:text-ink-900 lg:hidden"
+            className="rounded-lg p-2 text-ink-600 hover:bg-ink-100 hover:text-ink-900 lg:hidden shrink-0"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
 
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="truncate text-sm font-bold text-ink-900">{currentOrg.name}</span>
-              <span className="rounded-md bg-brand-50 border border-brand-100 px-2 py-0.5 text-[10px] font-semibold text-brand-700 uppercase tracking-wider">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <span className="truncate text-xs sm:text-sm font-bold text-ink-900">{currentOrg.name}</span>
+              <span className="rounded-md bg-brand-50 border border-brand-100 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-semibold text-brand-700 uppercase tracking-wider shrink-0">
                 {ORG_TYPE_LABEL[currentOrg.type]}
               </span>
             </div>
-            <span className="text-xs font-medium text-ink-500">{currentOrg.city} · {scopeDisplay}</span>
+            <span className="truncate text-[11px] sm:text-xs font-medium text-ink-500">{currentOrg.city} · {scopeDisplay}</span>
           </div>
         </div>
 
-        {/* Hospital Scope Switcher (Conditional) */}
+        {/* Hospital Scope Switcher (Desktop) */}
         {showScopeSwitcher && (
           <div className="hidden items-center gap-2 border-l border-ink-100 pl-4 lg:flex">
-            <label htmlFor="scope-select" className="text-xs font-semibold text-ink-600">Scope:</label>
+            <label htmlFor="scope-select-desktop" className="text-xs font-semibold text-ink-600">Scope:</label>
             <select
-              id="scope-select"
+              id="scope-select-desktop"
               value={currentScope}
               onChange={(e) => switchScope(e.target.value as BillingScope)}
               aria-label="Switch hospital billing scope"
@@ -121,7 +122,7 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
           </div>
         )}
 
-        {/* Center: Global Search Bar */}
+        {/* Center: Global Search Bar (Desktop) */}
         <div className="hidden max-w-md flex-1 md:block">
           <div className="relative">
             <SearchBar
@@ -191,17 +192,29 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
           </div>
         </div>
 
-        {/* Right Utilities: Quick Action, Notifications, Help & User Profile */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Right Utilities: Mobile Search Toggle, Quick Action, Notifications, Help & User Profile */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Mobile Search Button */}
+          <button
+            type="button"
+            onClick={() => setMobileSearchOpen((v) => !v)}
+            aria-label="Search"
+            className="rounded-lg p-2 text-ink-600 hover:bg-ink-100 hover:text-ink-900 md:hidden transition-colors"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+
           <button
             type="button"
             onClick={() => setDailyCollectionOpen(true)}
             title="Quick View Daily Collection"
             aria-label="Quick View Daily Collection"
-            className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors"
+            className="flex items-center gap-1 sm:gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2 sm:px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors"
           >
             <span className="font-mono font-black text-emerald-600">₹</span>
-            <span>Daily</span>
+            <span className="hidden xs:inline sm:inline">Daily</span>
           </button>
 
           {/* Notifications Bell */}
@@ -209,7 +222,7 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
             type="button"
             onClick={() => setNotifOpen(true)}
             aria-label="Notifications"
-            className="relative rounded-lg p-2 text-ink-600 hover:bg-ink-100 hover:text-ink-900 transition-colors"
+            className="relative rounded-lg p-1.5 sm:p-2 text-ink-600 hover:bg-ink-100 hover:text-ink-900 transition-colors"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -223,14 +236,14 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
               type="button"
               onClick={() => { setHelpOpen((v) => !v); setUserMenuOpen(false); }}
               aria-label="Help and support"
-              className="rounded-lg p-2 text-ink-600 hover:bg-ink-100 hover:text-ink-900 transition-colors"
+              className="rounded-lg p-1.5 sm:p-2 text-ink-600 hover:bg-ink-100 hover:text-ink-900 transition-colors"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </button>
             {helpOpen && (
-              <div role="dialog" aria-label="Help and support" className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-ink-100 bg-white p-4 text-left text-sm shadow-2xl">
+              <div role="dialog" aria-label="Help and support" className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-2rem)] sm:w-72 max-w-xs rounded-xl border border-ink-100 bg-white p-4 text-left text-sm shadow-2xl">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-brand-700 text-xs font-bold">?</div>
                   <p className="font-bold text-ink-900">Qlyno Support &amp; Rules</p>
@@ -246,28 +259,28 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
           </div>
 
           {/* User Profile & Demo Switcher Popover */}
-          <div className="relative border-l border-ink-100 pl-3">
+          <div className="relative border-l border-ink-100 pl-2 sm:pl-3">
             <button
               type="button"
               onClick={() => { setUserMenuOpen((v) => !v); setHelpOpen(false); }}
-              className="flex items-center gap-2.5 rounded-lg p-1 text-left hover:bg-ink-50 transition-colors focus:outline-none"
+              className="flex items-center gap-2 rounded-lg p-1 text-left hover:bg-ink-50 transition-colors focus:outline-none"
             >
-              <div className="hidden text-right sm:block">
-                <p className="text-sm font-bold text-ink-900 leading-tight">{currentUser.name}</p>
-                <p className="text-xs font-medium text-ink-500">{userPermissionText}</p>
+              <div className="hidden text-right md:block">
+                <p className="text-xs sm:text-sm font-bold text-ink-900 leading-tight">{currentUser.name}</p>
+                <p className="text-[11px] font-medium text-ink-500">{userPermissionText}</p>
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-brand-600 to-brand-500 text-sm font-bold text-white shadow-sm ring-2 ring-brand-100">
+              <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gradient-to-tr from-brand-600 to-brand-500 text-xs sm:text-sm font-bold text-white shadow-sm ring-2 ring-brand-100 shrink-0">
                 {currentUser.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
               </div>
             </button>
 
             {/* Profile & Demo Switcher Dropdown */}
             {userMenuOpen && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-ink-100 bg-white p-4 shadow-2xl">
+              <div className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-2xl border border-ink-100 bg-white p-4 shadow-2xl">
                 <div className="border-b border-ink-100 pb-3 mb-3">
                   <p className="font-bold text-ink-900">{currentUser.name}</p>
                   <p className="text-xs text-ink-500">{currentUser.email}</p>
-                  <div className="mt-2 flex items-center gap-1.5">
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     <span className="rounded bg-brand-50 border border-brand-200 px-2 py-0.5 text-[11px] font-bold text-brand-700">
                       {currentUser.role === "billing_admin" ? "Billing Admin" : "Billing Staff"}
                     </span>
@@ -278,6 +291,25 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
                     </span>
                   </div>
                 </div>
+
+                {/* Mobile Hospital Scope Switcher */}
+                {showScopeSwitcher && (
+                  <div className="mb-3 border-b border-ink-100 pb-3 lg:hidden">
+                    <label htmlFor="scope-select-mobile" className="text-xs font-semibold text-ink-600 block mb-1">
+                      Billing Scope Context:
+                    </label>
+                    <select
+                      id="scope-select-mobile"
+                      value={currentScope}
+                      onChange={(e) => switchScope(e.target.value as BillingScope)}
+                      className="w-full rounded-lg border border-brand-200 bg-brand-50/50 px-2.5 py-1.5 text-xs font-semibold text-brand-900 focus:border-brand-500"
+                    >
+                      {currentUser.scopes.map((s) => (
+                        <option key={s} value={s}>{SCOPE_LABELS[s]}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Demo Workspace Controls */}
                 <div className="space-y-3 pt-1">
@@ -327,6 +359,77 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
         </div>
 
       </div>
+
+      {/* Mobile Search Input Overlay */}
+      {mobileSearchOpen && (
+        <div className="border-t border-ink-100 bg-white p-3 md:hidden animate-in slide-in-from-top-2 duration-150">
+          <div className="relative">
+            <SearchBar
+              value={query}
+              onChange={setQuery}
+              placeholder="Search patient, UHID, invoice #, receipt #…"
+              ariaLabel="Mobile global billing search"
+            />
+            {results && (
+              <div className="mt-2 max-h-80 overflow-y-auto rounded-xl border border-ink-100 bg-white p-2 shadow-xl">
+                {results.pt.length === 0 && results.inv.length === 0 && results.rc.length === 0 ? (
+                  <div className="px-4 py-4 text-center">
+                    <p className="text-sm font-medium text-ink-700">No records found for &ldquo;{query}&rdquo;</p>
+                  </div>
+                ) : (
+                  <>
+                    {results.pt.length > 0 && (
+                      <div className="mb-2">
+                        <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-ink-400">Patients</p>
+                        {results.pt.map((p) => (
+                          <button
+                            key={p.id}
+                            onClick={() => { router.push(`/patients/${p.id}`); setQuery(""); setMobileSearchOpen(false); }}
+                            className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs hover:bg-brand-50"
+                          >
+                            <span className="font-semibold text-ink-900">{p.name}</span>
+                            <span className="font-mono text-[11px] text-ink-500">UHID: {p.uhid}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {results.inv.length > 0 && (
+                      <div className="mb-2">
+                        <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-ink-400">Invoices</p>
+                        {results.inv.map((i) => (
+                          <button
+                            key={i.id}
+                            onClick={() => { router.push(`/billing/invoices/${i.id}`); setQuery(""); setMobileSearchOpen(false); }}
+                            className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs hover:bg-brand-50"
+                          >
+                            <span className="font-mono font-medium text-brand-700">{i.invoiceNumber}</span>
+                            <span className="font-mono text-xs font-semibold text-ink-900">{formatINR(i.total)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {results.rc.length > 0 && (
+                      <div>
+                        <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-ink-400">Receipts</p>
+                        {results.rc.map((r) => (
+                          <button
+                            key={r.id}
+                            onClick={() => { router.push(`/receipts/${r.id}`); setQuery(""); setMobileSearchOpen(false); }}
+                            className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs hover:bg-brand-50"
+                          >
+                            <span className="font-mono font-medium text-emerald-700">{r.receiptNumber}</span>
+                            <span className="font-mono text-xs font-semibold text-ink-900">{formatINR(r.amount)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <NotificationPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
       <QuickDailyCollectionModal open={dailyCollectionOpen} onClose={() => setDailyCollectionOpen(false)} />

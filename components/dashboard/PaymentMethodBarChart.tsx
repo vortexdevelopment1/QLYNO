@@ -66,17 +66,17 @@ export function PaymentMethodBarChart({ payments }: PaymentMethodBarChartProps) 
 
         return (
           <div key={item.method} className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
-                <span className="font-medium text-ink-800">{item.label}</span>
-                <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium ${item.badgeBg}`}>
+            <div className="flex flex-wrap items-center justify-between text-xs gap-1 sm:gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${item.color}`} />
+                <span className="font-medium text-ink-800 truncate">{item.label}</span>
+                <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium shrink-0 ${item.badgeBg}`}>
                   {item.count} txns
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-ink-400 text-[11px] font-mono">{item.percent.toFixed(1)}%</span>
-                <span className="font-mono font-semibold text-ink-900">{formatINR(item.amount)}</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto sm:ml-0">
+                <span className="text-ink-400 text-[10px] sm:text-[11px] font-mono">{item.percent.toFixed(1)}%</span>
+                <span className="font-mono font-semibold text-ink-900 text-xs sm:text-sm">{formatINR(item.amount)}</span>
               </div>
             </div>
 

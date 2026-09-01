@@ -69,8 +69,8 @@ export default function InvoiceDetailPage() {
           <WorkflowStepper status={invoice.status} />
 
           {/* Header info */}
-          <section className="rounded-xl border border-ink-100 bg-white p-5 shadow-card">
-            <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+          <section className="rounded-xl border border-ink-100 bg-white p-4 sm:p-5 shadow-card">
+            <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm sm:grid-cols-4">
               <div><p className="text-xs text-ink-400">Patient</p><p className="font-medium text-ink-800">{patient?.name}</p></div>
               <div><p className="text-xs text-ink-400">UHID</p><p className="font-medium text-ink-800">{patient?.uhid}</p></div>
               <div><p className="text-xs text-ink-400">Encounter</p><p className="font-medium text-ink-800">{encounter ? `${encounter.type.toUpperCase()} · ${encounter.department}` : "—"}</p></div>
@@ -86,17 +86,17 @@ export default function InvoiceDetailPage() {
           </section>
 
           {/* Line items */}
-          <section className="rounded-xl border border-ink-100 bg-white p-5 shadow-card">
+          <section className="rounded-xl border border-ink-100 bg-white p-4 sm:p-5 shadow-card">
             <h2 className="mb-3 text-sm font-semibold text-ink-800">Line Items</h2>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px] text-sm">
+              <table className="w-full min-w-[560px] text-xs sm:text-sm">
                 <thead className="text-left text-xs uppercase text-ink-500">
                   <tr className="border-b border-ink-100"><th className="py-2">Service</th><th>Source</th><th>Qty</th><th>Rate</th><th>Discount</th><th>Tax</th><th>Total</th></tr>
                 </thead>
                 <tbody>
                   {invoice.lineItems.map((l) => (
                     <tr key={l.id} className="border-b border-ink-50">
-                      <td className="py-2">{l.serviceName}</td>
+                      <td className="py-2.5 font-medium">{l.serviceName}</td>
                       <td className="text-ink-500">{l.source.replace("_", " ")}</td>
                       <td>{l.quantity}</td>
                       <td>{formatINR(l.rate)}</td>
@@ -109,7 +109,7 @@ export default function InvoiceDetailPage() {
               </table>
             </div>
 
-            <div className="mt-4 ml-auto max-w-xs rounded-lg bg-ink-50 p-4 text-sm">
+            <div className="mt-4 sm:ml-auto w-full sm:max-w-xs rounded-lg bg-ink-50 p-4 text-xs sm:text-sm">
               <div className="flex justify-between py-0.5"><span className="text-ink-500">Subtotal</span><span>{formatINR(invoice.subtotal)}</span></div>
               <div className="flex justify-between py-0.5"><span className="text-ink-500">Discount</span><span>-{formatINR(invoice.discountTotal)}</span></div>
               <div className="flex justify-between py-0.5"><span className="text-ink-500">Tax / other charges</span><span>{formatINR(invoice.taxTotal)}</span></div>

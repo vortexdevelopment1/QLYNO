@@ -116,14 +116,14 @@ export default function DischargeBillingPage() {
       />
 
       {/* Explicit Read-Only Clinical Banner */}
-      <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-900 flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-900">
         <div className="flex items-center gap-2">
           <span className="text-base">ℹ️</span>
           <div>
             <strong className="font-bold">Read-Only Clinical Context:</strong> Billing Staff manages financial settlement only. Clinical discharge (discharge summary, medical clearing, prescriptions) is performed by medical staff in the HMS clinical module.
           </div>
         </div>
-        <span className="shrink-0 rounded bg-blue-100 px-2 py-0.5 font-bold text-[10px] text-blue-800 uppercase tracking-wider">Financial Settlement</span>
+        <span className="self-start sm:self-center shrink-0 rounded bg-blue-100 px-2 py-0.5 font-bold text-[10px] text-blue-800 uppercase tracking-wider">Financial Settlement</span>
       </div>
 
       {settledSuccessMsg && (

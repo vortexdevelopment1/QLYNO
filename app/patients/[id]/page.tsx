@@ -33,9 +33,9 @@ export default function PatientDetailPage() {
         title={patient.name}
         description={`${patient.uhid} · ${patient.age} yrs · ${patient.gender} · ${patient.phone}`}
         actions={
-          <div className="flex overflow-hidden rounded-lg border border-ink-200">
-            <button onClick={() => setView("staff")} className={`px-3 py-1.5 text-xs font-medium ${view === "staff" ? "bg-brand-600 text-white" : "bg-white text-ink-600"}`}>Staff View</button>
-            <button onClick={() => setView("patient")} className={`px-3 py-1.5 text-xs font-medium ${view === "patient" ? "bg-brand-600 text-white" : "bg-white text-ink-600"}`}>Patient Billing Preview</button>
+          <div className="flex w-full sm:w-auto overflow-hidden rounded-lg border border-ink-200">
+            <button onClick={() => setView("staff")} className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-medium ${view === "staff" ? "bg-brand-600 text-white" : "bg-white text-ink-600"}`}>Staff View</button>
+            <button onClick={() => setView("patient")} className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-medium ${view === "patient" ? "bg-brand-600 text-white" : "bg-white text-ink-600"}`}>Patient Billing Preview</button>
           </div>
         }
       />

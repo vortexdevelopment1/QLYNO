@@ -55,10 +55,10 @@ export function PendingSourceBarChart({ items }: PendingSourceBarChartProps) {
   }
 
   return (
-    <div className="rounded-xl border border-ink-100 bg-ink-50/50 p-3.5 space-y-2.5">
-      <div className="flex items-center justify-between text-xs">
+    <div className="rounded-xl border border-ink-100 bg-ink-50/50 p-3 sm:p-3.5 space-y-2.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
         <span className="font-semibold text-ink-700">Pending Charges Breakdown by Source</span>
-        <span className="font-mono text-ink-500 font-medium">Total: {formatINR(sourceStats.totalAmount)}</span>
+        <span className="font-mono text-ink-500 font-medium text-[11px] sm:text-xs">Total: {formatINR(sourceStats.totalAmount)}</span>
       </div>
 
       {/* Multi-Segment Stacked Progress Bar */}

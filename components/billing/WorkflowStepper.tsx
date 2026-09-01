@@ -53,7 +53,7 @@ export function WorkflowStepper({ status }: { status: InvoiceStatus }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-1.5 sm:gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         {STEPS.map((s) => {
           const isDone = s.step <= currentStep;
           const isCurrent = s.step === currentStep;
@@ -61,7 +61,7 @@ export function WorkflowStepper({ status }: { status: InvoiceStatus }) {
           return (
             <div
               key={s.step}
-              className={`rounded-lg p-2 text-xs border ${
+              className={`rounded-lg p-1.5 sm:p-2 text-xs border min-w-0 ${
                 isCurrent
                   ? "border-brand-500 bg-brand-50/80 text-brand-900 ring-2 ring-brand-100"
                   : isDone
@@ -69,9 +69,9 @@ export function WorkflowStepper({ status }: { status: InvoiceStatus }) {
                   : "border-ink-100 bg-ink-50/40 text-ink-400"
               }`}
             >
-              <div className="flex items-center gap-1 font-semibold">
+              <div className="flex items-center gap-1 font-semibold min-w-0">
                 <span
-                  className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${
+                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] sm:text-[10px] ${
                     isCurrent
                       ? "bg-brand-600 text-white"
                       : isDone
@@ -81,9 +81,9 @@ export function WorkflowStepper({ status }: { status: InvoiceStatus }) {
                 >
                   {s.step}
                 </span>
-                <span className="truncate">{s.title}</span>
+                <span className="truncate text-[11px] sm:text-xs">{s.title}</span>
               </div>
-              <p className="mt-1 line-clamp-1 text-[10px] text-ink-500">{s.desc}</p>
+              <p className="mt-1 line-clamp-1 text-[9px] sm:text-[10px] text-ink-500">{s.desc}</p>
             </div>
           );
         })}

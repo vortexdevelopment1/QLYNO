@@ -59,22 +59,22 @@ export function AgeingBarChart({ invoices }: AgeingBarChartProps) {
   return (
     <div className="space-y-4">
       {/* Visual Bar Chart */}
-      <div className="flex h-44 items-end gap-3 rounded-xl border border-ink-100 bg-ink-50/50 p-4">
+      <div className="flex h-36 sm:h-44 items-end gap-1.5 sm:gap-3 rounded-xl border border-ink-100 bg-ink-50/50 p-2.5 sm:p-4">
         {ageingData.buckets.map((bucket) => {
           const heightPercent = Math.max((bucket.amount / ageingData.maxAmount) * 100, 6);
           const percentOfTotal = totalOutstanding > 0 ? ((bucket.amount / totalOutstanding) * 100).toFixed(1) : "0";
 
           return (
-            <div key={bucket.key} className="group relative flex h-full flex-1 flex-col items-center justify-end">
+            <div key={bucket.key} className="group relative flex h-full flex-1 flex-col items-center justify-end min-w-0">
               {/* Tooltip on hover */}
-              <div className="pointer-events-none absolute -top-12 z-20 hidden flex-col items-center whitespace-nowrap rounded-lg border border-ink-200 bg-white px-2.5 py-1.5 text-xs text-ink-900 shadow-xl transition-all group-hover:flex">
+              <div className="pointer-events-none absolute -top-12 z-20 hidden flex-col items-center whitespace-nowrap rounded-lg border border-ink-200 bg-white px-2 py-1 text-[11px] sm:text-xs text-ink-900 shadow-xl transition-all group-hover:flex">
                 <span className="font-semibold">{bucket.label}</span>
                 <span>{formatINR(bucket.amount)} ({bucket.count} inv · {percentOfTotal}%)</span>
                 <div className="absolute -bottom-1 h-2 w-2 rotate-45 border-b border-r border-ink-200 bg-white" />
               </div>
 
               {/* Amount label above bar */}
-              <span className="mb-1 font-mono text-[11px] font-semibold tracking-tight text-ink-700">
+              <span className="mb-1 font-mono text-[9px] xs:text-[10px] sm:text-[11px] font-semibold tracking-tight text-ink-700 truncate max-w-full">
                 {bucket.amount > 0 ? formatINR(bucket.amount) : "₹0"}
               </span>
 
@@ -96,7 +96,7 @@ export function AgeingBarChart({ invoices }: AgeingBarChartProps) {
               />
 
               {/* Bucket Label below */}
-              <span className="mt-2 max-w-full truncate text-xs font-medium text-ink-600">
+              <span className="mt-1.5 sm:mt-2 max-w-full truncate text-[10px] sm:text-xs font-medium text-ink-600">
                 {bucket.label}
               </span>
             </div>

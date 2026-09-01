@@ -133,7 +133,7 @@ export function InviteStaffModal({ open, onClose }: InviteStaffModalProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="block text-xs font-semibold text-ink-700 mb-1">Email Address</label>
             <input
@@ -157,7 +157,7 @@ export function InviteStaffModal({ open, onClose }: InviteStaffModalProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="block text-xs font-semibold text-ink-700 mb-1">Role</label>
             <select
@@ -187,7 +187,7 @@ export function InviteStaffModal({ open, onClose }: InviteStaffModalProps) {
           <div>
             <label className="block text-xs font-semibold text-ink-700 mb-1">Assigned Scopes (Hospital)</label>
             <p className="text-xs text-ink-400 mb-2">Hospital staff are assigned department scopes to control billing visibility.</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {ALL_SCOPES.map((scope) => {
                 const isChecked = selectedScopes.includes(scope);
                 return (

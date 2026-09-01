@@ -214,10 +214,10 @@ export function InvoiceForm({
         <div className="mt-1 flex justify-between border-t border-ink-200 pt-1.5 text-base font-semibold text-ink-900"><span>Total</span><span>{formatINR(total)}</span></div>
       </div>
 
-      <div className="flex flex-wrap justify-end gap-3 border-t border-ink-100 pt-4">
-        <button type="button" onClick={onCancel} className="rounded-lg border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50">Cancel</button>
-        <button type="button" onClick={() => handleSubmit(false)} className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100">Save as Draft</button>
-        <button type="button" onClick={() => handleSubmit(true)} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">Save &amp; Issue Invoice</button>
+      <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 border-t border-ink-100 pt-4">
+        <button type="button" onClick={onCancel} className="w-full sm:w-auto rounded-lg border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50">Cancel</button>
+        <button type="button" onClick={() => handleSubmit(false)} className="w-full sm:w-auto rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100">Save as Draft</button>
+        <button type="button" onClick={() => handleSubmit(true)} className="w-full sm:w-auto rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">Save &amp; Issue Invoice</button>
       </div>
     </div>
   );

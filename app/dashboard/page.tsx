@@ -76,35 +76,35 @@ export default function DashboardPage() {
         title={`Welcome back, ${currentUser.name.split(" ")[0]}`}
         description={`${currentOrg.name} · ${currentScope !== "central" ? "Scope: " + SCOPE_LABELS[currentScope] : "Central Billing View"}`}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
             <button
               onClick={() => setNewInvoiceOpen(true)}
-              className="rounded-lg bg-brand-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-brand-700 shadow-sm transition-all flex items-center gap-1"
+              className="rounded-lg bg-brand-600 px-3 sm:px-3.5 py-2 text-xs font-bold text-white hover:bg-brand-700 shadow-sm transition-all flex items-center gap-1 flex-1 sm:flex-initial justify-center"
             >
               <span>+</span> New Bill
             </button>
             <button
               onClick={() => setCollectPaymentOpen(true)}
-              className="rounded-lg border border-brand-200 bg-brand-50 px-3.5 py-2 text-xs font-bold text-brand-800 hover:bg-brand-100 shadow-xs transition-all"
+              className="rounded-lg border border-brand-200 bg-brand-50 px-3 sm:px-3.5 py-2 text-xs font-bold text-brand-800 hover:bg-brand-100 shadow-xs transition-all flex-1 sm:flex-initial text-center"
             >
               Collect Payment
             </button>
             <Link
               href="/receipts"
-              className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-xs font-semibold text-ink-700 hover:bg-ink-50 shadow-xs transition-all"
+              className="rounded-lg border border-ink-200 bg-white px-2.5 sm:px-3 py-2 text-xs font-semibold text-ink-700 hover:bg-ink-50 shadow-xs transition-all flex-1 sm:flex-initial text-center"
             >
               Issue Receipt
             </Link>
             <button
               onClick={() => setRefundOpen(true)}
-              className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-xs font-semibold text-ink-700 hover:bg-ink-50 shadow-xs transition-all"
+              className="rounded-lg border border-ink-200 bg-white px-2.5 sm:px-3 py-2 text-xs font-semibold text-ink-700 hover:bg-ink-50 shadow-xs transition-all flex-1 sm:flex-initial text-center"
             >
-              Request Refund
+              Refund
             </button>
             {currentOrg.type === "hospital" && (
               <button
                 onClick={() => setDischargeOpen(true)}
-                className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-900 hover:bg-emerald-100 shadow-xs transition-all"
+                className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-900 hover:bg-emerald-100 shadow-xs transition-all w-full sm:w-auto text-center"
               >
                 Discharge Settlement
               </button>
@@ -121,7 +121,7 @@ export default function DashboardPage() {
           </h2>
           <span className="text-[11px] font-medium text-ink-400">Updated in real-time</span>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             label="Today's Bills"
             value={String(todaysInvoices.length)}
@@ -155,17 +155,17 @@ export default function DashboardPage() {
         <div className="space-y-6 xl:col-span-2">
           
           {/* 2. Outstanding & Ageing Bar Chart Section */}
-          <section aria-labelledby="outstanding-heading" className="rounded-2xl border border-ink-100 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between border-b border-ink-100 pb-3">
+          <section aria-labelledby="outstanding-heading" className="rounded-2xl border border-ink-100 bg-white p-4 sm:p-6 shadow-sm">
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-ink-100 pb-3">
               <div>
-                <h2 id="outstanding-heading" className="text-base font-bold text-ink-900">
+                <h2 id="outstanding-heading" className="text-sm sm:text-base font-bold text-ink-900">
                   Outstanding Balances &amp; Ageing Analysis
                 </h2>
                 <p className="text-xs text-ink-500 mt-0.5">Categorized by invoice aging buckets</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-medium text-ink-500">Total Outstanding</p>
-                <p className="font-mono text-xl font-bold text-rose-600">{formatINR(outstandingTotal)}</p>
+              <div className="sm:text-right">
+                <p className="text-[11px] sm:text-xs font-medium text-ink-500">Total Outstanding</p>
+                <p className="font-mono text-lg sm:text-xl font-bold text-rose-600">{formatINR(outstandingTotal)}</p>
               </div>
             </div>
 
@@ -183,18 +183,18 @@ export default function DashboardPage() {
                     View all ({outstandingInvoices.length}) &rarr;
                   </Link>
                 </div>
-                <div className="divide-y divide-ink-100 rounded-xl border border-ink-100 bg-ink-50/30">
+                <div className="divide-y divide-ink-100 rounded-xl border border-ink-100 bg-ink-50/30 overflow-hidden">
                   {outstandingInvoices.slice(0, 4).map((inv) => {
                     const patient = patients.find((p) => p.id === inv.patientId);
                     return (
-                      <div key={inv.id} className="flex items-center justify-between p-3 text-xs hover:bg-white transition-colors">
+                      <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-2 text-xs hover:bg-white transition-colors">
                         <div>
                           <p className="font-bold text-ink-900">
                             {patient?.name} <span className="font-mono text-ink-400">· {inv.invoiceNumber}</span>
                           </p>
                           <p className="text-[11px] text-ink-500">Issued on {inv.date || inv.createdAt.split("T")[0]}</p>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between sm:justify-end gap-3">
                           <StatusBadge status={inv.status} />
                           <span className="font-mono font-bold text-rose-600">{formatINR(inv.outstanding)}</span>
                         </div>
@@ -207,7 +207,7 @@ export default function DashboardPage() {
           </section>
 
           {/* 3. Payments & Method Breakdown Bar Chart Section */}
-          <section aria-labelledby="payments-heading" className="rounded-2xl border border-ink-100 bg-white p-6 shadow-sm">
+          <section aria-labelledby="payments-heading" className="rounded-2xl border border-ink-100 bg-white p-4 sm:p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between border-b border-ink-100 pb-3">
               <div>
                 <h2 id="payments-heading" className="text-base font-bold text-ink-900">

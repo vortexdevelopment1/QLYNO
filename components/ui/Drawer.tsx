@@ -51,7 +51,7 @@ export function Drawer({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl border-l border-ink-100 transform transition-transform"
+        className="flex h-full w-full max-w-full sm:max-w-md flex-col bg-white shadow-2xl border-l border-ink-100 transform transition-transform"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drawer Fixed Header */}

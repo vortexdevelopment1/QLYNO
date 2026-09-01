@@ -20,7 +20,7 @@ export function PageHeader({
         )}
       </div>
       {actions && (
-        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:self-start">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 w-full sm:w-auto sm:self-start">
           {actions}
         </div>
       )}
