@@ -9,7 +9,7 @@ import { PermissionGuard } from "./PermissionGuard";
 export function NewInvoiceModal({
   open, onClose, prefillPending,
 }: {
-  open: boolean; onClose: () => void; prefillPending?: PendingBillingItem;
+  open: boolean; onClose: () => void; prefillPending?: PendingBillingItem | PendingBillingItem[];
 }) {
   const router = useRouter();
   return (

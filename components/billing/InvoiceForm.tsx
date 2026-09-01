@@ -19,19 +19,36 @@ const NORMAL_DISCOUNT_CAP_PERCENT = 20;
 export function InvoiceForm({
   onCancel, onCreated, prefillPending,
 }: {
-  onCancel: () => void; onCreated?: (invoiceId: string) => void; prefillPending?: PendingBillingItem;
+  onCancel: () => void; onCreated?: (invoiceId: string) => void; prefillPending?: PendingBillingItem | PendingBillingItem[];
 }) {
+  const pendingItems = useMemo<PendingBillingItem[]>(() => {
+    if (!prefillPending) return [];
+    return Array.isArray(prefillPending) ? prefillPending : [prefillPending];
+  }, [prefillPending]);
+
   const { currentOrg, currentUser, currentScope, patients, encounters, serviceCatalog, payers, dispatch } = useApp();
   const orgPatients = patients.filter((p) => p.organizationId === currentOrg.id);
   const orgCatalog = serviceCatalog.filter((s) => s.organizationId === currentOrg.id);
 
-  const [patientId, setPatientId] = useState(prefillPending?.patientId ?? "");
-  const [encounterId, setEncounterId] = useState(prefillPending?.encounterId ?? "");
+  const initialPatientId = pendingItems[0]?.patientId ?? "";
+  const initialEncounterId = pendingItems.length > 0 && pendingItems.every((i) => i.encounterId === pendingItems[0].encounterId)
+    ? (pendingItems[0].encounterId ?? "")
+    : "";
+
+  const [patientId, setPatientId] = useState(initialPatientId);
+  const [encounterId, setEncounterId] = useState(initialEncounterId);
   const [payerId, setPayerId] = useState("payer-self");
   const [notes, setNotes] = useState("");
-  const [lines, setLines] = useState<DraftLine[]>(
-    prefillPending
-      ? [{ key: nextId("line"), serviceId: prefillPending.serviceId, quantity: 1, discountPercent: 0, pendingItemId: prefillPending.id, source: prefillPending.source === "doctor_opd" ? "doctor_opd" : (prefillPending.source as InvoiceLineItem["source"]) }]
+  const [lines, setLines] = useState<DraftLine[]>(() =>
+    pendingItems.length > 0
+      ? pendingItems.map((item) => ({
+          key: nextId("line"),
+          serviceId: item.serviceId,
+          quantity: 1,
+          discountPercent: 0,
+          pendingItemId: item.id,
+          source: item.source === "doctor_opd" ? "doctor_opd" : (item.source as InvoiceLineItem["source"]),
+        }))
       : []
   );
   const [error, setError] = useState("");

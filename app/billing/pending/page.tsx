@@ -18,8 +18,9 @@ const SOURCE_LABEL: Record<string, string> = {
 
 export default function PendingBillingPage() {
   const { currentOrg, currentUser, pendingBillingItems, patients, encounters } = useApp();
-  const [invoiceModal, setInvoiceModal] = useState<PendingBillingItem | null>(null);
+  const [invoiceModal, setInvoiceModal] = useState<PendingBillingItem | PendingBillingItem[] | null>(null);
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"pending" | "reception">("pending");
 
   const items = useMemo(
@@ -27,38 +28,65 @@ export default function PendingBillingPage() {
     [pendingBillingItems, currentOrg.id, currentUser.scopes]
   );
 
-  function toggleSelectItem(id: string) {
-    setSelectedItemIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  function toggleSelectItem(item: PendingBillingItem) {
+    setSelectedItemIds((prev) => {
+      const isSelected = prev.includes(item.id);
+      const next = isSelected ? prev.filter((x) => x !== item.id) : [...prev, item.id];
+      if (next.length === 0) {
+        setSelectedPatientId(null);
+      } else if (!selectedPatientId) {
+        setSelectedPatientId(item.patientId);
+      }
+      return next;
+    });
   }
 
   function toggleSelectAll() {
-    if (selectedItemIds.length === items.length) {
-      setSelectedItemIds([]);
+    const targetPatientId = selectedPatientId ?? items[0]?.patientId;
+    if (!targetPatientId) return;
+    const targetItems = items.filter((i) => i.patientId === targetPatientId);
+    const targetIds = targetItems.map((i) => i.id);
+    const allTargetSelected = targetIds.every((id) => selectedItemIds.includes(id));
+
+    if (allTargetSelected) {
+      const next = selectedItemIds.filter((id) => !targetIds.includes(id));
+      setSelectedItemIds(next);
+      if (next.length === 0) setSelectedPatientId(null);
     } else {
-      setSelectedItemIds(items.map((i) => i.id));
+      const next = Array.from(new Set([...selectedItemIds, ...targetIds]));
+      setSelectedItemIds(next);
+      setSelectedPatientId(targetPatientId);
     }
   }
+
+  const targetPatientId = selectedPatientId ?? items[0]?.patientId;
+  const targetItems = targetPatientId ? items.filter((i) => i.patientId === targetPatientId) : [];
+  const isHeaderChecked = targetItems.length > 0 && targetItems.every((i) => selectedItemIds.includes(i.id));
 
   const columns: Column<PendingBillingItem>[] = [
     {
       header: (
         <input
           type="checkbox"
-          checked={items.length > 0 && selectedItemIds.length === items.length}
+          checked={isHeaderChecked}
           onChange={toggleSelectAll}
+          title="Select all items for the current patient"
           className="rounded border-ink-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
         />
       ),
-      accessor: (r) => (
-        <input
-          type="checkbox"
-          checked={selectedItemIds.includes(r.id)}
-          onChange={() => toggleSelectItem(r.id)}
-          className="rounded border-ink-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
-        />
-      ),
+      accessor: (r) => {
+        const isRowDisabled = selectedPatientId !== null && r.patientId !== selectedPatientId;
+        return (
+          <input
+            type="checkbox"
+            checked={selectedItemIds.includes(r.id)}
+            disabled={isRowDisabled}
+            onChange={() => toggleSelectItem(r)}
+            title={isRowDisabled ? "Select pending items for one patient at a time to combine into an invoice" : undefined}
+            className={`rounded border-ink-300 text-brand-600 focus:ring-brand-500 ${isRowDisabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
+          />
+        );
+      },
     },
     { header: "Patient", accessor: (r) => { const p = patients.find((x) => x.id === r.patientId); return <span>{p?.name}<span className="block text-xs text-ink-400">{p?.uhid}</span></span>; } },
     { header: "Encounter", accessor: (r) => { const e = encounters.find((x) => x.id === r.encounterId); return e ? `${e.type.toUpperCase()} · ${e.department}` : "—"; } },
@@ -76,7 +104,8 @@ export default function PendingBillingPage() {
     },
   ];
 
-  const selectedFirstItem = items.find((i) => selectedItemIds.includes(i.id));
+  const selectedPatientName = selectedPatientId ? patients.find((p) => p.id === selectedPatientId)?.name : null;
+  const selectedItems = items.filter((i) => selectedItemIds.includes(i.id));
 
   return (
     <div className="space-y-4">
@@ -87,10 +116,10 @@ export default function PendingBillingPage() {
           <div className="flex flex-wrap items-center gap-2">
             {selectedItemIds.length > 0 && (
               <button
-                onClick={() => setInvoiceModal(selectedFirstItem ?? items[0])}
+                onClick={() => setInvoiceModal(selectedItems)}
                 className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-emerald-700"
               >
-                + Create Combined Invoice ({selectedItemIds.length})
+                + Create Combined Invoice{selectedPatientName ? ` for ${selectedPatientName}` : ""} ({selectedItemIds.length})
               </button>
             )}
             <div className="flex overflow-hidden rounded-lg border border-ink-200 bg-white">
@@ -98,7 +127,7 @@ export default function PendingBillingPage() {
                 onClick={() => setActiveTab("pending")}
                 className={`px-3 py-1.5 text-xs font-medium ${activeTab === "pending" ? "bg-brand-600 text-white" : "text-ink-600 hover:bg-ink-50"}`}
               >
-                Pending Billable Items ({items.length})
+                Pending Billable ({items.length})
               </button>
               <button
                 onClick={() => setActiveTab("reception")}
@@ -119,7 +148,7 @@ export default function PendingBillingPage() {
               </div>
               {selectedItemIds.length > 0 && (
                 <span className="shrink-0 font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">
-                  {selectedItemIds.length} item(s) selected
+                  {selectedItemIds.length} item(s) selected {selectedPatientName ? `(${selectedPatientName})` : ""}
                 </span>
               )}
             </div>
@@ -129,7 +158,15 @@ export default function PendingBillingPage() {
           <ReceptionHandOffTab />
         )}
       </PermissionGuard>
-      <NewInvoiceModal open={!!invoiceModal} onClose={() => setInvoiceModal(null)} prefillPending={invoiceModal ?? undefined} />
+      <NewInvoiceModal
+        open={!!invoiceModal}
+        onClose={() => {
+          setInvoiceModal(null);
+          setSelectedItemIds([]);
+          setSelectedPatientId(null);
+        }}
+        prefillPending={invoiceModal ?? undefined}
+      />
     </div>
   );
 }
