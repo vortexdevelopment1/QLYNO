@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export function Drawer({
@@ -17,6 +17,11 @@ export function Drawer({
   headerAction?: React.ReactNode;
 }) {
   const [mounted, setMounted] = useState(false);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -30,7 +35,7 @@ export function Drawer({
     }
 
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     }
 
     if (open) document.addEventListener("keydown", onKey);
@@ -38,7 +43,7 @@ export function Drawer({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open || !mounted) return null;
 

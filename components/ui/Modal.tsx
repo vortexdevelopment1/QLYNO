@@ -22,27 +22,41 @@ const SIZE_CLASSES: Record<string, string> = {
 export function Modal({ open, onClose, title, children, footer, size = "md" }: ModalProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [mounted, setMounted] = useState(false);
+  const prevOpenRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (open) {
+    if (open && !prevOpenRef.current) {
       headingRef.current?.focus();
+    }
+    prevOpenRef.current = open;
+
+    if (open) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     }
-    if (open) document.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open || !mounted) return null;
 
