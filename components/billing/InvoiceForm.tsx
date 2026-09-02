@@ -178,42 +178,42 @@ export function InvoiceForm({
         {lines.length === 0 ? (
           <p className="rounded-lg border border-dashed border-ink-200 px-4 py-6 text-center text-sm text-ink-500">No services added yet.</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-ink-100">
-            <table className="w-full min-w-[600px] text-sm">
+          <div className="overflow-x-auto rounded-lg border border-ink-100 max-w-full touch-pan-x">
+            <table className="w-full min-w-[580px] text-xs sm:text-sm">
               <thead className="bg-ink-50 text-left text-xs uppercase text-ink-500">
                 <tr>
-                  <th className="px-3 py-2">Service</th>
-                  <th className="px-3 py-2">Qty</th>
-                  <th className="px-3 py-2">Rate</th>
-                  <th className="px-3 py-2">Discount %</th>
-                  <th className="px-3 py-2">Total</th>
-                  <th className="px-3 py-2" />
+                  <th className="px-2.5 sm:px-3 py-2">Service</th>
+                  <th className="px-2 sm:px-3 py-2">Qty</th>
+                  <th className="px-2 sm:px-3 py-2">Rate</th>
+                  <th className="px-2 sm:px-3 py-2">Discount %</th>
+                  <th className="px-2 sm:px-3 py-2">Total</th>
+                  <th className="px-2 sm:px-3 py-2" />
                 </tr>
               </thead>
               <tbody>
                 {lines.map((l, idx) => (
                   <tr key={l.key} className="border-t border-ink-50">
-                    <td className="px-3 py-2">
-                      <select value={l.serviceId} onChange={(e) => updateLine(l.key, { serviceId: e.target.value })} aria-label={`Service for line ${idx + 1}`} className="w-full rounded-md border border-ink-200 px-2 py-1.5 text-sm">
+                    <td className="px-2.5 sm:px-3 py-2">
+                      <select value={l.serviceId} onChange={(e) => updateLine(l.key, { serviceId: e.target.value })} aria-label={`Service for line ${idx + 1}`} className="w-full min-w-[140px] rounded-md border border-ink-200 px-2 py-1.5 text-xs sm:text-sm">
                         {orgCatalog.map((s) => (
                           <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                       </select>
                     </td>
-                    <td className="px-3 py-2">
-                      <input type="number" min={1} value={l.quantity} onChange={(e) => updateLine(l.key, { quantity: Number(e.target.value) })} aria-label={`Quantity for line ${idx + 1}`} className="w-16 rounded-md border border-ink-200 px-2 py-1.5 text-sm" />
+                    <td className="px-2 sm:px-3 py-2">
+                      <input type="number" min={1} value={l.quantity} onChange={(e) => updateLine(l.key, { quantity: Number(e.target.value) })} aria-label={`Quantity for line ${idx + 1}`} className="w-14 sm:w-16 rounded-md border border-ink-200 px-2 py-1.5 text-xs sm:text-sm" />
                     </td>
-                    <td className="px-3 py-2 text-ink-600">{formatINR(orgCatalog.find((s) => s.id === l.serviceId)?.rate ?? 0)}</td>
-                    <td className="px-3 py-2">
+                    <td className="px-2 sm:px-3 py-2 text-ink-600 whitespace-nowrap">{formatINR(orgCatalog.find((s) => s.id === l.serviceId)?.rate ?? 0)}</td>
+                    <td className="px-2 sm:px-3 py-2">
                       <input
                         type="number" min={0} max={NORMAL_DISCOUNT_CAP_PERCENT} value={l.discountPercent}
                         onChange={(e) => updateLine(l.key, { discountPercent: Math.min(NORMAL_DISCOUNT_CAP_PERCENT, Number(e.target.value)) })}
-                        aria-label={`Discount percent for line ${idx + 1}`} className="w-16 rounded-md border border-ink-200 px-2 py-1.5 text-sm"
+                        aria-label={`Discount percent for line ${idx + 1}`} className="w-14 sm:w-16 rounded-md border border-ink-200 px-2 py-1.5 text-xs sm:text-sm"
                       />
                     </td>
-                    <td className="px-3 py-2 font-medium text-ink-800">{formatINR(computedLines[idx]?.total ?? 0)}</td>
-                    <td className="px-3 py-2">
-                      <button type="button" onClick={() => removeLine(l.key)} aria-label={`Remove line ${idx + 1}`} className="text-ink-400 hover:text-red-600">✕</button>
+                    <td className="px-2 sm:px-3 py-2 font-medium text-ink-800 whitespace-nowrap">{formatINR(computedLines[idx]?.total ?? 0)}</td>
+                    <td className="px-2 sm:px-3 py-2">
+                      <button type="button" onClick={() => removeLine(l.key)} aria-label={`Remove line ${idx + 1}`} className="p-1 rounded text-ink-400 hover:text-red-600 hover:bg-ink-100">✕</button>
                     </td>
                   </tr>
                 ))}

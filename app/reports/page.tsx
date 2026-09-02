@@ -116,7 +116,7 @@ export default function ReportsPage() {
           {report === "department_wise" && (Object.keys(byDepartment).length ? bar(byDepartment) : <EmptyState title="No department-wise data" />)}
           {report === "insurance" && (
             orgClaims.length === 0 ? <EmptyState title="No insurance claims" /> : (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard label="Claims" value={String(orgClaims.length)} />
                 <StatCard label="Settled" value={String(orgClaims.filter((c) => c.status === "settled").length)} tone="success" />
                 <StatCard label="Payer Outstanding" value={formatINR(orgClaims.reduce((s, c) => s + c.payerOutstanding, 0))} tone="warning" />
@@ -125,7 +125,7 @@ export default function ReportsPage() {
             )
           )}
           {report === "refund" && (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard label="Total Requested" value={String(orgRefunds.length)} />
               <StatCard label="Completed" value={String(orgRefunds.filter((r) => r.status === "completed").length)} tone="success" />
               <StatCard label="Pending Approval" value={String(orgRefunds.filter((r) => r.status === "requested" && r.requiresApproval).length)} tone="warning" />
@@ -133,7 +133,7 @@ export default function ReportsPage() {
             </div>
           )}
           {report === "discount" && (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard label="Total Discounts" value={String(orgDiscounts.length)} />
               <StatCard label="Pending Approval" value={String(orgDiscounts.filter((d) => d.approvalStatus === "pending").length)} tone="warning" />
               <StatCard label="Approved" value={String(orgDiscounts.filter((d) => d.approvalStatus === "approved").length)} tone="success" />

@@ -45,7 +45,7 @@ export function QuickDailyCollectionModal({ open, onClose }: QuickDailyCollectio
       }
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <StatCard label="Total Collected Today" value={formatINR(totalCollected)} tone="success" />
           <StatCard label="Bills Issued Today" value={String(orgInvoices.length)} />
         </div>

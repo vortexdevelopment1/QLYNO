@@ -222,12 +222,12 @@ export default function DashboardPage() {
 
             {/* Failed Payments Callout */}
             {failedPayments.length > 0 && (
-              <div className="mb-4 flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50/80 p-3 text-xs text-rose-900">
+              <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl border border-rose-200 bg-rose-50/80 p-3 text-xs text-rose-900">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-600 text-white text-[10px] font-bold">!</span>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white text-[10px] font-bold">!</span>
                   <span className="font-semibold">{failedPayments.length} failed payment transaction(s) require immediate staff attention.</span>
                 </div>
-                <Link href="/payments" className="font-bold underline text-rose-700 hover:text-rose-900">
+                <Link href="/payments" className="font-bold underline text-rose-700 hover:text-rose-900 shrink-0">
                   Resolve Now
                 </Link>
               </div>
@@ -262,7 +262,7 @@ export default function DashboardPage() {
           </section>
 
           {/* 4. Pending Billing Section */}
-          <section aria-labelledby="pending-heading" className="rounded-2xl border border-ink-100 bg-white p-6 shadow-sm">
+          <section aria-labelledby="pending-heading" className="rounded-2xl border border-ink-100 bg-white p-4 sm:p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between border-b border-ink-100 pb-3">
               <div>
                 <h2 id="pending-heading" className="text-base font-bold text-ink-900">
@@ -287,12 +287,12 @@ export default function DashboardPage() {
                 {orgPending.slice(0, 5).map((item) => {
                   const patient = patients.find((p) => p.id === item.patientId);
                   return (
-                    <div key={item.id} className="flex items-center justify-between p-3 text-xs hover:bg-ink-50/50 transition-colors">
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-2 text-xs hover:bg-ink-50/50 transition-colors">
                       <div>
                         <p className="font-bold text-ink-900">{patient?.name}</p>
                         <p className="text-[11px] text-ink-500 capitalize">{item.source.replace("_", " ")} · {item.date}</p>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-between sm:justify-end gap-3">
                         <span className="font-mono font-bold text-ink-900">{formatINR(item.amount)}</span>
                         <button
                           onClick={() => setNewInvoiceOpen(true)}

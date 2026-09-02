@@ -268,14 +268,14 @@ export default function DischargeBillingPage() {
                 <p className="text-xs font-semibold text-ink-700">Linked Invoices for this Admission:</p>
                 <div className="divide-y border rounded-lg overflow-hidden text-xs">
                   {admissionInvoices.map((inv) => (
-                    <div key={inv.id} className="flex items-center justify-between p-3 bg-white hover:bg-ink-50">
+                    <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-2 bg-white hover:bg-ink-50">
                       <div>
                         <span className="font-mono font-bold text-brand-700">{inv.invoiceNumber}</span>
                         <span className="ml-2 text-ink-400">({inv.scope.toUpperCase()} scope)</span>
                         <span className="block text-[11px] text-ink-500">{inv.lineItems.map((l) => l.serviceName).join(", ")}</span>
                       </div>
-                      <div className="text-right">
-                        <span className="font-bold text-ink-900 block">{formatINR(inv.total)}</span>
+                      <div className="flex items-center justify-between sm:justify-end gap-2 text-right">
+                        <span className="font-bold text-ink-900">{formatINR(inv.total)}</span>
                         <StatusBadge status={inv.status} />
                       </div>
                     </div>
@@ -316,7 +316,7 @@ export default function DischargeBillingPage() {
               </div>
 
               {/* Action Bar */}
-              <div className="pt-2 flex flex-wrap gap-3 items-center justify-between">
+              <div className="pt-2 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
                 <div className="text-xs text-ink-500">
                   {aggregateMetrics.outstanding === 0 ? (
                     <span className="text-emerald-700 font-semibold">✅ Balance is 0. Ready for final settlement clearance.</span>
@@ -329,12 +329,12 @@ export default function DischargeBillingPage() {
                   {selectedEncounter.status !== "discharged" ? (
                     <button
                       onClick={handleFinalSettlement}
-                      className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-emerald-700 transition"
+                      className="w-full sm:w-auto rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-emerald-700 transition"
                     >
                       Clear Billing & Mark Settled for Discharge
                     </button>
                   ) : (
-                    <span className="rounded-lg bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-600">
+                    <span className="w-full sm:w-auto rounded-lg bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-600 text-center">
                       ✅ Discharge Billing Completed
                     </span>
                   )}

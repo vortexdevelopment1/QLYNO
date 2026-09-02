@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useApp } from "@/context/AppContext";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { formatINR } from "@/lib/utils";
 
 interface ChatMessage {
@@ -37,6 +36,11 @@ export default function AiAssistantPage() {
     },
   ]);
   const [input, setInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const orgInvoices = invoices.filter((i) => i.organizationId === currentOrg.id);
 
@@ -196,16 +200,20 @@ export default function AiAssistantPage() {
   }
 
   return (
-    <div>
-      <PageHeader
-        title="AI Billing Assistant"
-        description="Assisted lookup & drafting tool for Billing Staff. Operates strictly on existing billing data. BARRED from making independent financial decisions."
-      />
-      <div className="mx-auto flex max-w-2xl flex-col rounded-xl border border-ink-100 bg-white shadow-card">
-        <div className="flex-1 space-y-3 overflow-y-auto p-5" style={{ maxHeight: 480 }}>
+    <div className="flex flex-col h-[calc(100vh-5rem)] sm:h-[calc(100vh-6rem)] -mt-2 sm:-mt-4">
+      <div className="shrink-0 mb-3 border-b border-ink-100 pb-3 min-w-0">
+        <h1 className="text-xl font-bold tracking-tight text-ink-900 sm:text-2xl">
+          AI Billing Assistant
+        </h1>
+        <p className="mt-1 text-xs font-medium text-ink-500 sm:text-sm max-w-3xl leading-relaxed">
+          Assisted lookup & drafting tool for Billing Staff. Operates strictly on existing billing data. BARRED from making independent financial decisions.
+        </p>
+      </div>
+      <div className="mx-auto flex w-full max-w-2xl flex-col flex-1 min-h-0 rounded-xl border border-ink-100 bg-white shadow-card overflow-hidden">
+        <div className="flex-1 space-y-3 overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:p-5">
           {messages.map((m) => (
             <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "bg-brand-600 text-white" : "bg-ink-50 text-ink-800 border border-ink-100"}`}>
+              <div className={`max-w-[90%] sm:max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm ${m.role === "user" ? "bg-brand-600 text-white" : "bg-ink-50 text-ink-800 border border-ink-100"}`}>
                 <p>{m.text}</p>
                 {m.relatedInvoiceId && (
                   <Link href={`/billing/invoices/${m.relatedInvoiceId}`} className="mt-2 inline-block rounded-md bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700 hover:underline border border-brand-200">View Invoice →</Link>
@@ -216,8 +224,9 @@ export default function AiAssistantPage() {
               </div>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
-        <div className="border-t border-ink-100 p-3 bg-ink-50/50 rounded-b-xl">
+        <div className="shrink-0 border-t border-ink-100 p-3 bg-ink-50/50 rounded-b-xl">
           <p className="mb-2 text-[11px] font-semibold text-ink-500 uppercase tracking-wider">Suggested AI Use Cases (PRD Section 25)</p>
           <div className="mb-3 flex flex-wrap gap-1.5">
             {SUGGESTED_PROMPTS.map((p) => (
@@ -226,11 +235,24 @@ export default function AiAssistantPage() {
           </div>
           <form
             onSubmit={(e) => { e.preventDefault(); send(input); }}
-            className="flex gap-2"
+            className="flex items-end gap-1.5 sm:gap-2"
           >
             <label htmlFor="ai-input" className="sr-only">Ask the AI Billing Assistant</label>
-            <input id="ai-input" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask about line items, receipts, payment status, refunds, insurance, duplicates..." className="flex-1 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
-            <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">Send</button>
+            <textarea
+              id="ai-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (input.trim()) send(input);
+                }
+              }}
+              placeholder="Ask about line items, receipts, payment status, refunds, insurance, duplicates..."
+              className="flex-1 resize-none rounded-lg border border-ink-200 bg-white px-3 py-2 text-xs sm:text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 min-h-[44px]"
+              rows={2}
+            />
+            <button type="submit" className="rounded-lg bg-brand-600 px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white hover:bg-brand-700 shrink-0 h-[44px]">Send</button>
           </form>
         </div>
       </div>

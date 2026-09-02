@@ -21,7 +21,7 @@ export function DataTable<T>({ columns, rows, rowKey, emptyTitle = "No records f
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-ink-100 bg-white shadow-card transition-shadow max-w-full">
+    <div className="overflow-x-auto rounded-xl border border-ink-100 bg-white shadow-card transition-shadow max-w-full touch-pan-x">
       <table className="w-full min-w-[600px] border-collapse text-xs sm:text-sm">
         <thead>
           <tr className="border-b border-ink-100 bg-ink-50/70 text-left">
@@ -44,7 +44,7 @@ export function DataTable<T>({ columns, rows, rowKey, emptyTitle = "No records f
               }
             >
               {columns.map((col, idx) => (
-                <td key={idx} className={`px-3 py-3 sm:px-4 sm:py-3.5 align-middle text-ink-800 ${col.className ?? ""}`}>
+                <td key={idx} className={`px-3 py-2.5 sm:px-4 sm:py-3.5 align-middle text-ink-800 ${col.className ?? ""}`}>
                   {col.accessor(row)}
                 </td>
               ))}

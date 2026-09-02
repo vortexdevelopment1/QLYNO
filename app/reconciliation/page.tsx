@@ -36,8 +36,8 @@ export default function ReconciliationPage() {
         ) : (
           <div className="space-y-4">
             {records.map((r) => (
-              <div key={r.id} className="rounded-xl border border-ink-100 bg-white p-5 shadow-card">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div key={r.id} className="rounded-xl border border-ink-100 bg-white p-4 sm:p-5 shadow-card">
+                <div className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
                   <p className="text-sm font-semibold text-ink-800">{r.date}</p>
                   <p className="text-xs text-ink-500">Expected {formatINR(r.expectedCollection)} · Actual {formatINR(r.actualCollection)} · Diff <span className="font-medium text-ink-800">{formatINR(r.difference)}</span></p>
                 </div>
@@ -52,7 +52,7 @@ export default function ReconciliationPage() {
                           <StatusBadge status={e.status} />
                         </div>
                         <p className="text-ink-700">{e.description}</p>
-                        <div className="mt-1 flex items-center justify-between">
+                        <div className="mt-1 flex flex-wrap items-center justify-between gap-1">
                           <span className="text-xs font-medium text-ink-800">{formatINR(e.amount)}</span>
                           {e.status !== "resolved" ? (
                             <button onClick={() => { setResolving({ reconId: r.id, excId: e.id, description: e.description }); setNotes(""); }} className="text-xs font-medium text-brand-600 hover:underline">Investigate &amp; Resolve</button>
