@@ -65,7 +65,7 @@ export function AgeingBarChart({ invoices }: AgeingBarChartProps) {
           const percentOfTotal = totalOutstanding > 0 ? ((bucket.amount / totalOutstanding) * 100).toFixed(1) : "0";
 
           return (
-            <div key={bucket.key} className="group relative flex h-full flex-1 flex-col items-center justify-end min-w-0">
+            <div key={bucket.key} className="group relative flex h-full flex-1 flex-col items-center justify-end min-w-0 pb-1">
               {/* Tooltip on hover */}
               <div className="pointer-events-none absolute -top-12 z-20 hidden flex-col items-center whitespace-nowrap rounded-lg border border-ink-200 bg-white px-2 py-1 text-[11px] sm:text-xs text-ink-900 shadow-xl transition-all group-hover:flex">
                 <span className="font-semibold">{bucket.label}</span>
@@ -78,22 +78,24 @@ export function AgeingBarChart({ invoices }: AgeingBarChartProps) {
                 {bucket.amount > 0 ? formatINR(bucket.amount) : "₹0"}
               </span>
 
-              {/* Bar column */}
-              <div
-                tabIndex={0}
-                role="img"
-                aria-label={`${bucket.label}: ${formatINR(bucket.amount)}, ${bucket.count} invoices`}
-                style={{ height: `${heightPercent}%` }}
-                className={`w-full rounded-t-lg transition-all duration-300 shadow-sm group-hover:brightness-110 ${
-                  bucket.key === "0_30"
-                    ? "bg-gradient-to-t from-brand-600 to-brand-500"
-                    : bucket.key === "31_60"
-                    ? "bg-gradient-to-t from-sky-600 to-sky-400"
-                    : bucket.key === "61_90"
-                    ? "bg-gradient-to-t from-amber-600 to-amber-400"
-                    : "bg-gradient-to-t from-rose-600 to-rose-500"
-                }`}
-              />
+              {/* Bar column Wrapper */}
+              <div className="flex w-full flex-1 items-end justify-center">
+                <div
+                  tabIndex={0}
+                  role="img"
+                  aria-label={`${bucket.label}: ${formatINR(bucket.amount)}, ${bucket.count} invoices`}
+                  style={{ height: `${heightPercent}%` }}
+                  className={`w-full rounded-t-lg transition-all duration-300 shadow-sm group-hover:brightness-110 ${
+                    bucket.key === "0_30"
+                      ? "bg-gradient-to-t from-brand-600 to-brand-500"
+                      : bucket.key === "31_60"
+                      ? "bg-gradient-to-t from-sky-600 to-sky-400"
+                      : bucket.key === "61_90"
+                      ? "bg-gradient-to-t from-amber-600 to-amber-400"
+                      : "bg-gradient-to-t from-rose-600 to-rose-500"
+                  }`}
+                />
+              </div>
 
               {/* Bucket Label below */}
               <span className="mt-1.5 sm:mt-2 max-w-full truncate text-[10px] sm:text-xs font-medium text-ink-600">
