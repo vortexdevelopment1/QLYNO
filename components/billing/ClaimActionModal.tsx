@@ -46,15 +46,17 @@ export function ClaimActionModal({ open, onClose, claim, mode }: ClaimActionModa
   if (!claim) return null;
 
   function handleApprovedAmountChange(val: number | "") {
+    if (!claim) return;
     setApprovedAmount(val);
     if (typeof val === "number") {
       setSettledAmount(val);
-      const computedPatientResp = Math.max(0, claim!.claimedAmount - val);
+      const computedPatientResp = Math.max(0, claim.claimedAmount - val);
       setPatientResponsibility(computedPatientResp);
     }
   }
 
   function handleSubmit() {
+    if (!claim) return;
     setError("");
     if (mode === "verify") {
       dispatch({

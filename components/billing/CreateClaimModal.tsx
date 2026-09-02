@@ -59,8 +59,8 @@ export function CreateClaimModal({ open, onClose, prefillInvoiceId }: CreateClai
 
   function handleSubmit() {
     setError("");
-    if (!invoiceId) {
-      setError("Please select an invoice to link this insurance claim to.");
+    if (!invoiceId || !selectedInvoice) {
+      setError("Please select a valid invoice to link this insurance claim to.");
       return;
     }
     if (!payerId) {
@@ -80,7 +80,7 @@ export function CreateClaimModal({ open, onClose, prefillInvoiceId }: CreateClai
     const newClaim: InsuranceClaim = {
       id: claimId,
       invoiceId,
-      patientId: selectedInvoice!.patientId,
+      patientId: selectedInvoice.patientId,
       payerId,
       policyNumber: policyNumber.trim(),
       status: "pending_verification",
