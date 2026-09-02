@@ -89,16 +89,16 @@ export default function OutstandingPage() {
         title="Outstanding Balances"
         description="Overview of unpaid and partially paid invoices categorized by ageing buckets and patient balance breakdown."
         actions={
-          <div className="flex overflow-hidden rounded-lg border border-ink-200 bg-white">
+          <div className="flex w-full sm:w-auto overflow-hidden rounded-lg border border-ink-200 bg-white">
             <button
               onClick={() => setViewMode("invoice")}
-              className={`px-3 py-1.5 text-xs font-medium ${viewMode === "invoice" ? "bg-brand-600 text-white" : "text-ink-600 hover:bg-ink-50"}`}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-medium ${viewMode === "invoice" ? "bg-brand-600 text-white" : "text-ink-600 hover:bg-ink-50"}`}
             >
               Invoice-Wise View
             </button>
             <button
               onClick={() => setViewMode("patient")}
-              className={`px-3 py-1.5 text-xs font-medium ${viewMode === "patient" ? "bg-brand-600 text-white" : "text-ink-600 hover:bg-ink-50"}`}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-medium ${viewMode === "patient" ? "bg-brand-600 text-white" : "text-ink-600 hover:bg-ink-50"}`}
             >
               Patient-Wise View ({patientGroups.length})
             </button>
@@ -106,12 +106,12 @@ export default function OutstandingPage() {
         }
       />
 
-      <div className="mb-4 rounded-xl border border-ink-100 bg-white p-4 shadow-card flex justify-between items-center">
+      <div className="mb-4 rounded-xl border border-ink-100 bg-white p-4 shadow-card flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <p className="text-xs text-ink-500">Total Outstanding Balance</p>
           <p className="text-2xl font-semibold text-ink-900">{formatINR(total)}</p>
         </div>
-        <div className="text-xs text-ink-500 text-right">
+        <div className="text-xs text-ink-500 sm:text-right">
           <p>{outstanding.length} invoice(s) pending</p>
           <p>{patientGroups.length} patient(s) with balance</p>
         </div>
@@ -129,12 +129,12 @@ export default function OutstandingPage() {
             ) : (
               patientGroups.map((pg) => (
                 <div key={pg.patientId} className="rounded-xl border border-ink-100 bg-white p-4 shadow-card">
-                  <div className="mb-3 flex items-center justify-between border-b border-ink-100 pb-2">
+                  <div className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-ink-100 pb-2">
                     <div>
                       <h3 className="font-semibold text-ink-900 text-sm">{pg.patientName}</h3>
                       <p className="text-xs text-ink-400">{pg.uhid} · {pg.invoicesCount} pending invoice(s)</p>
                     </div>
-                    <div className="text-right">
+                    <div className="sm:text-right">
                       <p className="text-xs text-ink-400">Net Outstanding</p>
                       <p className="text-base font-bold text-red-600">{formatINR(pg.totalOutstanding)}</p>
                     </div>
@@ -142,17 +142,17 @@ export default function OutstandingPage() {
 
                   <ul className="divide-y divide-ink-50 text-xs mb-3">
                     {pg.invoices.map((inv) => (
-                      <li key={inv.id} className="flex justify-between py-2 items-center">
+                      <li key={inv.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 gap-2">
                         <div>
                           <span className="font-medium text-ink-800">{inv.invoiceNumber}</span>
                           <span className="text-ink-400 ml-2">({formatDate(inv.date)})</span>
                           <span className="ml-2 text-ink-500">Ageing: {ageingBucket(ageingDays(inv.date))}</span>
                         </div>
-                        <div className="flex gap-2 items-center">
+                        <div className="flex justify-between sm:justify-end gap-2 items-center">
                           <span className="font-semibold text-red-600">{formatINR(inv.outstanding)}</span>
                           <button
                             onClick={() => setPayInvoice(inv)}
-                            className="rounded bg-brand-600 px-2 py-0.5 text-white hover:bg-brand-700"
+                            className="rounded bg-brand-600 px-2.5 py-1 text-white hover:bg-brand-700 font-medium"
                           >
                             Collect
                           </button>
@@ -179,3 +179,4 @@ export default function OutstandingPage() {
     </div>
   );
 }
+
