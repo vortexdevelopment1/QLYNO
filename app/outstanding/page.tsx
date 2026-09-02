@@ -204,16 +204,6 @@ export default function OutstandingPage() {
         }
       />
 
-<<<<<<< HEAD
-      <div className="mb-4 rounded-xl border border-ink-100 bg-white p-4 shadow-card flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-        <div>
-          <p className="text-xs text-ink-500">Total Outstanding Balance</p>
-          <p className="text-2xl font-semibold text-ink-900">{formatINR(total)}</p>
-        </div>
-        <div className="text-xs text-ink-500 sm:text-right">
-          <p>{outstanding.length} invoice(s) pending</p>
-          <p>{patientGroups.length} patient(s) with balance</p>
-=======
       {/* Metric Cards with Patient vs Payer breakdown */}
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div
@@ -247,7 +237,6 @@ export default function OutstandingPage() {
           <p className="text-xs font-medium text-amber-700">Payer (Insurance / TPA) Outstanding</p>
           <p className="mt-1 text-2xl font-bold text-amber-800">{formatINR(totals.totalPayer)}</p>
           <p className="mt-1 text-[11px] text-ink-400">Pending TPA claim settlements</p>
->>>>>>> 75e09993601978a247277b52644205be62a18c7f
         </div>
       </div>
 
