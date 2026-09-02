@@ -76,18 +76,6 @@ export default function CommunicationPage() {
         <SectionSkeleton action={false} />
         <Card padded={false} className="overflow-hidden">
           <div className="grid h-[600px] grid-cols-1 md:grid-cols-3">
-            <div className="border-r border-line">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="flex items-start gap-3 border-b border-line/70 px-4 py-3">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="min-w-0 flex-1">
-                    <Skeleton className="h-4 w-36" />
-                    <Skeleton className="mt-2 h-3 w-full" />
-                    <Skeleton className="mt-2 h-5 w-20" />
-                  </div>
-                </div>
-              ))}
-            </div>
             <div className="flex flex-col md:col-span-2">
               <div className="flex items-center gap-2.5 border-b border-line px-5 py-3.5">
                 <Skeleton className="h-8 w-8 rounded-full" />
@@ -101,6 +89,18 @@ export default function CommunicationPage() {
                 <Skeleton className="ml-auto h-14 w-1/2 rounded-2xl" />
                 <Skeleton className="h-20 w-3/4 rounded-2xl" />
               </div>
+            </div>
+            <div className="border-t border-line md:border-l md:border-t-0">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="flex items-start gap-3 border-b border-line/70 px-4 py-3">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <div className="min-w-0 flex-1">
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="mt-2 h-3 w-full" />
+                    <Skeleton className="mt-2 h-5 w-20" />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </Card>
@@ -147,61 +147,6 @@ export default function CommunicationPage() {
 
       <Card padded={false} className="overflow-hidden">
         <div className="grid min-h-[620px] grid-cols-1 md:grid-cols-3">
-          <div className="border-r border-line">
-            <div className="border-b border-line p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.06em] text-ink-muted">
-                  {scope === "hospital" ? "Hospital Staff" : "Clinic Staff"}
-                </p>
-                <Pill tone="neutral">{contacts.length}</Pill>
-              </div>
-              <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search staff or team"
-                  className="input-field pl-9"
-                />
-              </div>
-            </div>
-
-            <div className="max-h-[520px] overflow-y-auto">
-              {visibleContacts.length === 0 ? (
-                <EmptyState title="No staff found" description="Try another name, role or department." />
-              ) : (
-                visibleContacts.map((contact) => (
-                  <button
-                    key={contact.id}
-                    onClick={() => setActiveId(contact.id)}
-                    className={`w-full border-b border-line/70 px-4 py-3 text-left transition-colors ${
-                      activeId === contact.id ? "bg-brand-50" : "hover:bg-paper"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Avatar initials={initials(contact.name)} size={32} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-[13px] font-medium text-ink">{contact.name}</p>
-                          {contact.unread ? (
-                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-500 text-[10px] text-white">
-                              {contact.unread}
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="truncate text-xs text-ink-muted">{contact.lastMessage}</p>
-                        <div className="mt-1 flex items-center gap-1.5">
-                          <Pill tone={roleTone[contact.role] ?? "neutral"}>{contact.role}</Pill>
-                          <span className="text-[10px] text-ink-faint">{contact.time}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-
           <div className="flex flex-col md:col-span-2">
             {!active ? (
               <EmptyState title="Select a staff member" description="Choose a doctor, nurse or hospital team to start messaging." />
@@ -259,6 +204,61 @@ export default function CommunicationPage() {
               </>
             )}
           </div>
+
+          <aside className="border-t border-line md:border-l md:border-t-0">
+            <div className="border-b border-line p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.06em] text-ink-muted">
+                  {scope === "hospital" ? "Hospital Staff" : "Clinic Staff"}
+                </p>
+                <Pill tone="neutral">{contacts.length}</Pill>
+              </div>
+              <div className="relative">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search staff or team"
+                  className="input-field pl-9"
+                />
+              </div>
+            </div>
+
+            <div className="max-h-[520px] overflow-y-auto">
+              {visibleContacts.length === 0 ? (
+                <EmptyState title="No staff found" description="Try another name, role or department." />
+              ) : (
+                visibleContacts.map((contact) => (
+                  <button
+                    key={contact.id}
+                    onClick={() => setActiveId(contact.id)}
+                    className={`w-full border-b border-line/70 px-4 py-3 text-left transition-colors ${
+                      activeId === contact.id ? "bg-brand-50" : "hover:bg-paper"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Avatar initials={initials(contact.name)} size={32} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-[13px] font-medium text-ink">{contact.name}</p>
+                          {contact.unread ? (
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-500 text-[10px] text-white">
+                              {contact.unread}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="truncate text-xs text-ink-muted">{contact.lastMessage}</p>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <Pill tone={roleTone[contact.role] ?? "neutral"}>{contact.role}</Pill>
+                          <span className="text-[10px] text-ink-faint">{contact.time}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </aside>
         </div>
       </Card>
     </div>

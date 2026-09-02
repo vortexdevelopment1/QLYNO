@@ -455,11 +455,11 @@ export function DoctorAiAssistant() {
   }
 
   return (
-    <div className="fixed inset-x-3 bottom-3 z-50 flex flex-col items-end gap-3 sm:inset-x-auto sm:bottom-5 sm:right-5">
+    <div className="fixed inset-x-3 bottom-6 z-50 flex flex-col items-end gap-3 sm:inset-x-auto sm:bottom-6 sm:right-6">
       {open && (
         <div
           data-testid="doctor-ai-assistant-panel"
-          className="w-full overflow-hidden rounded-card border border-line bg-white shadow-pop sm:w-[28rem] md:w-[30rem]"
+          className="max-h-[calc(100dvh-8.5rem)] w-full overflow-hidden rounded-card border border-line bg-white shadow-pop sm:w-[28rem] md:w-[30rem]"
         >
           <div className="flex items-start justify-between gap-3 border-b border-line bg-ink px-3 py-3 text-white sm:px-4">
             <div className="flex items-center gap-3">
@@ -481,7 +481,7 @@ export function DoctorAiAssistant() {
             </button>
           </div>
 
-          <div className="max-h-[calc(100dvh-9.5rem)] overflow-y-auto p-3 sm:max-h-[calc(100vh-8.5rem)] sm:p-4">
+          <div className="max-h-[calc(100dvh-13rem)] overflow-y-auto p-3 sm:max-h-[calc(100dvh-13.5rem)] sm:p-4">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {aiOperations.map((item) => {
                 const Icon = item.icon;
