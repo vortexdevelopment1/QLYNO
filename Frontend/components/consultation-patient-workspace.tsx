@@ -204,6 +204,8 @@ export function ConsultationPatientWorkspace({ initialPatientId }: { initialPati
         <ConsultationForm
           patients={contextPatients.length > 0 ? contextPatients : patients}
           preselectedPatientId={selectedPatient.id}
+          labOrderMode="modal"
+          prescriptionMode="modal"
         />
       </div>
     );
