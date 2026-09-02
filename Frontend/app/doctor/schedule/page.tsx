@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { Ban, CalendarPlus, ChevronLeft, ChevronRight, Plane, Plus } from "lucide-react";
 import { ConflictNotice, ShiftCard, WorkplaceBadge } from "@/components/doctor-workflow";
-import { Card, Field, Modal, Pill, SectionHeading, TimePicker } from "@/components/ui";
+import { Card, Field, Modal, Pill, SectionHeading, TimePicker, SectionSkeleton, Skeleton, TableSkeleton } from "@/components/ui";
 import { useDoctorWorkflow } from "@/lib/doctor-workflow-context";
 import { DoctorShift, ShiftType, shiftTypeLabel } from "@/lib/doctor-workflow-types";
 import { CURRENT_DATE_ISO, CURRENT_DATE_LABEL } from "@/lib/app-time";
@@ -44,7 +44,7 @@ function getConflicts(shifts: DoctorShift[]) {
 }
 
 export default function DoctorSchedulePage() {
-  const { addShift, backendDoctorId, completeShift, getWorkplace, shifts, startShift, updateShiftStatus, workplaces } = useDoctorWorkflow();
+  const { addShift, backendDoctorId, completeShift, getWorkplace, isLoadingWorkflow, shifts, startShift, updateShiftStatus, workplaces } = useDoctorWorkflow();
   const [view, setView] = useState<ViewMode>("Day");
   const [workplaceFilter, setWorkplaceFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -83,6 +83,43 @@ export default function DoctorSchedulePage() {
       return { ...prev, workplaceId: workplaces[0]?.id ?? prev.workplaceId };
     });
   }, [workplaces]);
+
+  if (isLoadingWorkflow) {
+    return (
+      <div className="space-y-6">
+        <SectionSkeleton />
+        <Card className="!p-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex gap-2">
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-9 w-20" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-9 w-9" />
+              <Skeleton className="h-9 w-36" />
+              <Skeleton className="h-9 w-52" />
+            </div>
+          </div>
+        </Card>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_320px]">
+          <TableSkeleton columns={3} rows={6} />
+          <div className="space-y-4">
+            <Card>
+              <Skeleton className="mb-4 h-3 w-32" />
+              <Skeleton className="mb-3 h-14 w-full" />
+              <Skeleton className="h-14 w-full" />
+            </Card>
+            <Card>
+              <Skeleton className="mb-4 h-3 w-28" />
+              <Skeleton className="mb-2 h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   function openShift(id: string) {
     setSelectedShiftId(id);

@@ -1,11 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
-import { SectionHeading, Card, Avatar, Pill, Modal, Field } from "@/components/ui";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { SectionHeading, Card, Avatar, Pill, Modal, Field, SectionSkeleton, TableSkeleton } from "@/components/ui";
 import { staff as seedStaff, clinic } from "@/lib/mock-data";
 import { ClinicLocation, StaffMember, StaffRole } from "@/lib/types";
-import { ApiSyncSkippedError, createBackendClinicStaff, getBackendBootstrap } from "@/lib/api-client";
+import {
+  ApiSyncSkippedError,
+  createBackendClinicStaff,
+  deleteBackendClinicStaff,
+  getBackendBootstrap,
+  updateBackendClinicStaff,
+} from "@/lib/api-client";
 import { useMode } from "@/lib/mode-context";
 
 const roles: StaffRole[] = ["Receptionist", "Nurse", "Assistant", "Lab/Pharmacy User"];
@@ -27,10 +33,13 @@ export default function StaffManagementPage() {
   const { selectedWorkplaceId } = useMode();
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [locations, setLocations] = useState<ClinicLocation[]>([]);
+  const [isLoadingStaff, setIsLoadingStaff] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [role, setRole] = useState<StaffRole>("Receptionist");
   const [locationId, setLocationId] = useState(clinic.locations[0].id);
+  const [status, setStatus] = useState<StaffMember["status"]>("Invited");
   const [syncMessage, setSyncMessage] = useState("");
 
   useEffect(() => {
@@ -47,6 +56,9 @@ export default function StaffManagementPage() {
         if (cancelled) return;
         setStaff(seedStaff);
         setLocations(clinic.locations);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingStaff(false);
       });
 
     return () => {
@@ -54,8 +66,68 @@ export default function StaffManagementPage() {
     };
   }, []);
 
-  async function invite() {
+  if (isLoadingStaff) {
+    return (
+      <div>
+        <SectionSkeleton />
+        <TableSkeleton columns={5} rows={6} />
+      </div>
+    );
+  }
+
+  function resetForm() {
+    setEditingStaffId(null);
+    setName("");
+    setRole("Receptionist");
+    setLocationId(locations[0]?.id ?? clinic.locations[0].id);
+    setStatus("Invited");
+  }
+
+  function openInviteForm() {
+    resetForm();
+    setShowForm(true);
+  }
+
+  function openEditForm(member: StaffMember) {
+    setEditingStaffId(member.id);
+    setName(member.name);
+    setRole(member.role);
+    setLocationId(member.locationId ?? locations[0]?.id ?? clinic.locations[0].id);
+    setStatus(member.status);
+    setShowForm(true);
+  }
+
+  function backendStatus(value: StaffMember["status"]) {
+    if (value === "Active") return "ACTIVE";
+    if (value === "Suspended") return "SUSPENDED";
+    return "INVITED";
+  }
+
+  async function saveStaff() {
     if (!name.trim()) return;
+
+    if (editingStaffId) {
+      let updatedStaff: StaffMember = { id: editingStaffId, name, role, locationId, status };
+      try {
+        updatedStaff = {
+          ...(await updateBackendClinicStaff(editingStaffId, {
+            fullName: name,
+            role,
+            status: backendStatus(status),
+          })),
+          locationId,
+          status,
+        };
+        setSyncMessage("Staff changes synced to backend.");
+      } catch (error) {
+        setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock staff updated locally." : "Backend sync failed; local staff update kept.");
+      }
+      setStaff((prev) => prev.map((member) => (member.id === editingStaffId ? updatedStaff : member)));
+      resetForm();
+      setShowForm(false);
+      return;
+    }
+
     let nextStaff: StaffMember = { id: `staff-${Date.now()}`, name, role, locationId, status: "Invited" };
     try {
       nextStaff = {
@@ -71,12 +143,18 @@ export default function StaffManagementPage() {
       setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock staff invite saved locally." : "Backend sync failed; local staff invite kept.");
     }
     setStaff((prev) => [nextStaff, ...prev]);
-    setName("");
+    resetForm();
     setShowForm(false);
   }
 
-  function remove(id: string) {
+  async function remove(id: string) {
     if (window.confirm("Remove this staff member and revoke clinic access?")) {
+      try {
+        await deleteBackendClinicStaff(id, selectedWorkplaceId);
+        setSyncMessage("Staff access removed from backend.");
+      } catch (error) {
+        setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock staff removed locally." : "Backend delete failed; local staff removed.");
+      }
       setStaff((prev) => prev.filter((s) => s.id !== id));
     }
   }
@@ -87,7 +165,7 @@ export default function StaffManagementPage() {
         eyebrow="Clinic Operations · Staff Management"
         title="Staff Management"
         action={
-          <button onClick={() => setShowForm(true)} className="btn-primary">
+          <button onClick={openInviteForm} className="btn-primary">
             <Plus size={14} /> Invite Staff
           </button>
         }
@@ -96,15 +174,24 @@ export default function StaffManagementPage() {
 
       <Modal
         open={showForm}
-        title="Invite Staff Member"
+        title={editingStaffId ? "Edit Staff Member" : "Invite Staff Member"}
         eyebrow="Staff Management"
-        onClose={() => setShowForm(false)}
+        onClose={() => {
+          resetForm();
+          setShowForm(false);
+        }}
         footer={
           <>
-            <button onClick={invite} className="btn-primary">
-              <Plus size={14} /> Send Invite
+            <button onClick={saveStaff} className="btn-primary">
+              {editingStaffId ? "Save Changes" : <><Plus size={14} /> Send Invite</>}
             </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary">
+            <button
+              onClick={() => {
+                resetForm();
+                setShowForm(false);
+              }}
+              className="btn-secondary"
+            >
               Cancel
             </button>
           </>
@@ -132,6 +219,15 @@ export default function StaffManagementPage() {
             ))}
           </select>
           </Field>
+          {editingStaffId && (
+            <Field label="Status">
+            <select value={status} onChange={(e) => setStatus(e.target.value as StaffMember["status"])} className="input-field">
+              <option>Active</option>
+              <option>Invited</option>
+              <option>Suspended</option>
+            </select>
+            </Field>
+          )}
         </div>
       </Modal>
       {syncMessage && <p className="mb-3 text-xs text-ink-muted">{syncMessage}</p>}
@@ -164,9 +260,14 @@ export default function StaffManagementPage() {
                     <Pill tone={statusTone[s.status]}>{s.status}</Pill>
                   </td>
                   <td>
-                    <button onClick={() => remove(s.id)} aria-label="Remove staff member">
-                      <Trash2 size={14} className="text-ink-faint hover:text-alert-500" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => openEditForm(s)} aria-label="Edit staff member">
+                        <Pencil size={14} className="text-ink-faint hover:text-brand-600" />
+                      </button>
+                      <button onClick={() => remove(s.id)} aria-label="Remove staff member">
+                        <Trash2 size={14} className="text-ink-faint hover:text-alert-500" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

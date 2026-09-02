@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
-import { SectionHeading, Card, Pill, Modal, Field } from "@/components/ui";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { SectionHeading, Card, Pill, Modal, Field, CardGridSkeleton, SectionSkeleton } from "@/components/ui";
 import { clinic, doctors as seedDoctors } from "@/lib/mock-data";
 import { useMode } from "@/lib/mode-context";
-import { ApiSyncSkippedError, BackendClinicServiceRow, createBackendClinicService, getBackendBootstrap } from "@/lib/api-client";
+import {
+  ApiSyncSkippedError,
+  BackendClinicServiceRow,
+  createBackendClinicService,
+  deleteBackendClinicService,
+  getBackendBootstrap,
+  updateBackendClinicService,
+} from "@/lib/api-client";
 import { Doctor } from "@/lib/types";
 
 interface ServiceRow {
@@ -28,7 +35,9 @@ export default function ServicesPage() {
   const { selectedWorkplaceId } = useMode();
   const [services, setServices] = useState<BackendClinicServiceRow[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("20");
   const [price, setPrice] = useState("");
@@ -48,6 +57,9 @@ export default function ServicesPage() {
         if (cancelled) return;
         setServices(initialServices);
         setDoctors(seedDoctors);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingServices(false);
       });
 
     return () => {
@@ -55,37 +67,86 @@ export default function ServicesPage() {
     };
   }, []);
 
-  async function addService() {
+  if (isLoadingServices) {
+    return (
+      <div>
+        <SectionSkeleton />
+        <CardGridSkeleton cards={4} />
+      </div>
+    );
+  }
+
+  function resetForm() {
+    setName("");
+    setDurationMinutes("20");
+    setPrice("");
+    setEligibleDoctorIds([]);
+    setEditingServiceId(null);
+  }
+
+  function openAddForm() {
+    resetForm();
+    setShowForm(true);
+  }
+
+  function openEditForm(service: BackendClinicServiceRow) {
+    setEditingServiceId(service.id);
+    setName(service.name);
+    setDurationMinutes(String(service.durationMinutes));
+    setPrice(String(service.price));
+    setEligibleDoctorIds(service.eligibleDoctorIds);
+    setShowForm(true);
+  }
+
+  async function saveService() {
     if (!name.trim()) return;
-    let nextService: BackendClinicServiceRow = {
-      id: `svc-${Date.now()}`,
+    const serviceInput = {
       name,
-      eligibleDoctorIds,
       durationMinutes: Number(durationMinutes) || 20,
       price: Number(price) || 0,
+      eligibleDoctorIds,
+    };
+
+    if (editingServiceId) {
+      let updatedService: BackendClinicServiceRow = { id: editingServiceId, ...serviceInput };
+      try {
+        updatedService = await updateBackendClinicService(editingServiceId, serviceInput);
+        setSyncMessage("Clinic service changes synced to backend.");
+      } catch (error) {
+        setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock service updated locally." : "Backend sync failed; local service update kept.");
+      }
+      setServices((prev) => prev.map((service) => (service.id === editingServiceId ? updatedService : service)));
+      resetForm();
+      setShowForm(false);
+      return;
+    }
+
+    let nextService: BackendClinicServiceRow = {
+      id: `svc-${Date.now()}`,
+      ...serviceInput,
     };
     try {
       nextService = await createBackendClinicService({
         workplaceId: selectedWorkplaceId,
-        name,
-        durationMinutes: Number(durationMinutes) || 20,
-        price: Number(price) || 0,
-        eligibleDoctorIds,
+        ...serviceInput,
       });
       setSyncMessage("Clinic service synced to backend.");
     } catch (error) {
       setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock service saved locally." : "Backend sync failed; local service kept.");
     }
     setServices((prev) => [...prev, nextService]);
-    setName("");
-    setDurationMinutes("20");
-    setPrice("");
-    setEligibleDoctorIds([]);
+    resetForm();
     setShowForm(false);
   }
 
-  function remove(id: string) {
+  async function remove(id: string) {
     if (window.confirm("Remove this clinic service from patient booking?")) {
+      try {
+        await deleteBackendClinicService(id);
+        setSyncMessage("Clinic service deleted from backend.");
+      } catch (error) {
+        setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock service removed locally." : "Backend delete failed; local service removed.");
+      }
       setServices((prev) => prev.filter((s) => s.id !== id));
     }
   }
@@ -100,7 +161,7 @@ export default function ServicesPage() {
         eyebrow="Clinic Operations · Services"
         title="Services"
         action={
-          <button onClick={() => setShowForm(true)} className="btn-primary">
+          <button onClick={openAddForm} className="btn-primary">
             <Plus size={14} /> Add Service
           </button>
         }
@@ -109,15 +170,24 @@ export default function ServicesPage() {
 
       <Modal
         open={showForm}
-        title="Add Service"
+        title={editingServiceId ? "Edit Service" : "Add Service"}
         eyebrow="Clinic Services"
-        onClose={() => setShowForm(false)}
+        onClose={() => {
+          resetForm();
+          setShowForm(false);
+        }}
         footer={
           <>
-            <button onClick={addService} className="btn-primary">
-              <Plus size={14} /> Add Service
+            <button onClick={saveService} className="btn-primary">
+              {editingServiceId ? "Save Changes" : <><Plus size={14} /> Add Service</>}
             </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary">
+            <button
+              onClick={() => {
+                resetForm();
+                setShowForm(false);
+              }}
+              className="btn-secondary"
+            >
               Cancel
             </button>
           </>
@@ -164,9 +234,14 @@ export default function ServicesPage() {
           <Card key={s.id}>
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-medium text-ink">{s.name}</p>
-              <button onClick={() => remove(s.id)}>
-                <Trash2 size={14} className="text-ink-faint hover:text-alert-500" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => openEditForm(s)} aria-label="Edit service">
+                  <Pencil size={14} className="text-ink-faint hover:text-brand-600" />
+                </button>
+                <button onClick={() => remove(s.id)} aria-label="Delete service">
+                  <Trash2 size={14} className="text-ink-faint hover:text-alert-500" />
+                </button>
+              </div>
             </div>
             <div className="mb-3 flex flex-wrap gap-1.5">
               <Pill tone="neutral">{s.durationMinutes} min</Pill>

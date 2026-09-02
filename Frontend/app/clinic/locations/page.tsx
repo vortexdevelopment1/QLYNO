@@ -1,17 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapPin, Plus, Star, Trash2 } from "lucide-react";
-import { SectionHeading, Card, Pill, Modal, Field } from "@/components/ui";
+import { MapPin, Pencil, Plus, Star, Trash2 } from "lucide-react";
+import { SectionHeading, Card, Pill, Modal, Field, CardGridSkeleton, SectionSkeleton } from "@/components/ui";
 import { clinic, doctors } from "@/lib/mock-data";
-import { ApiSyncSkippedError, createBackendClinicLocation, getBackendBootstrap } from "@/lib/api-client";
+import {
+  ApiSyncSkippedError,
+  createBackendClinicLocation,
+  deleteBackendClinicLocation,
+  getBackendBootstrap,
+  updateBackendClinicLocation,
+} from "@/lib/api-client";
 import { useMode } from "@/lib/mode-context";
 import { ClinicLocation } from "@/lib/types";
 
 export default function LocationsPage() {
   const { selectedWorkplaceId } = useMode();
   const [locations, setLocations] = useState<ClinicLocation[]>([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [syncMessage, setSyncMessage] = useState("");
@@ -25,6 +33,9 @@ export default function LocationsPage() {
       })
       .catch(() => {
         if (!cancelled) setLocations(clinic.locations);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingLocations(false);
       });
 
     return () => {
@@ -32,8 +43,55 @@ export default function LocationsPage() {
     };
   }, []);
 
-  async function addLocation() {
+  if (isLoadingLocations) {
+    return (
+      <div>
+        <SectionSkeleton />
+        <CardGridSkeleton cards={4} />
+      </div>
+    );
+  }
+
+  function resetForm() {
+    setEditingLocationId(null);
+    setName("");
+    setAddress("");
+  }
+
+  function openAddForm() {
+    resetForm();
+    setShowForm(true);
+  }
+
+  function openEditForm(location: ClinicLocation) {
+    setEditingLocationId(location.id);
+    setName(location.name);
+    setAddress(location.address);
+    setShowForm(true);
+  }
+
+  async function saveLocation() {
     if (!name.trim() || !address.trim()) return;
+
+    if (editingLocationId) {
+      const existing = locations.find((location) => location.id === editingLocationId);
+      let updatedLocation: ClinicLocation = { id: editingLocationId, name, address, isPrimary: existing?.isPrimary };
+      try {
+        updatedLocation = await updateBackendClinicLocation(editingLocationId, {
+          name,
+          address,
+          isPrimary: existing?.isPrimary,
+        });
+        setSyncMessage("Clinic location changes synced to backend.");
+      } catch (error) {
+        setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock location updated locally." : "Backend sync failed; local location update kept.");
+      }
+      setLocations((prev) => prev.map((location) => (location.id === editingLocationId ? updatedLocation : location)));
+      resetForm();
+      setShowForm(false);
+      return;
+    }
+
     let nextLocation: ClinicLocation = { id: `loc-${Date.now()}`, name, address };
     try {
       nextLocation = await createBackendClinicLocation({
@@ -46,13 +104,18 @@ export default function LocationsPage() {
       setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock location saved locally." : "Backend sync failed; local location kept.");
     }
     setLocations((prev) => [...prev, nextLocation]);
-    setName("");
-    setAddress("");
+    resetForm();
     setShowForm(false);
   }
 
-  function remove(id: string) {
+  async function remove(id: string) {
     if (window.confirm("Remove this clinic location? Existing doctor assignments may need review.")) {
+      try {
+        await deleteBackendClinicLocation(id);
+        setSyncMessage("Clinic location deleted from backend.");
+      } catch (error) {
+        setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock location removed locally." : "Backend delete failed; local location removed.");
+      }
       setLocations((prev) => prev.filter((l) => l.id !== id));
     }
   }
@@ -63,7 +126,7 @@ export default function LocationsPage() {
         eyebrow="Clinic Operations · Locations"
         title="Locations"
         action={
-          <button onClick={() => setShowForm(true)} className="btn-primary">
+          <button onClick={openAddForm} className="btn-primary">
             <Plus size={14} /> Add Location
           </button>
         }
@@ -72,15 +135,24 @@ export default function LocationsPage() {
 
       <Modal
         open={showForm}
-        title="Add Location"
+        title={editingLocationId ? "Edit Location" : "Add Location"}
         eyebrow="Clinic Locations"
-        onClose={() => setShowForm(false)}
+        onClose={() => {
+          resetForm();
+          setShowForm(false);
+        }}
         footer={
           <>
-            <button onClick={addLocation} className="btn-primary">
-              <Plus size={14} /> Add Location
+            <button onClick={saveLocation} className="btn-primary">
+              {editingLocationId ? "Save Changes" : <><Plus size={14} /> Add Location</>}
             </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary">
+            <button
+              onClick={() => {
+                resetForm();
+                setShowForm(false);
+              }}
+              className="btn-secondary"
+            >
               Cancel
             </button>
           </>
@@ -119,9 +191,14 @@ export default function LocationsPage() {
                     <p className="text-xs text-ink-muted mt-0.5">{l.address}</p>
                   </div>
                 </div>
-                <button onClick={() => remove(l.id)}>
-                  <Trash2 size={14} className="text-ink-faint hover:text-alert-500" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => openEditForm(l)} aria-label="Edit location">
+                    <Pencil size={14} className="text-ink-faint hover:text-brand-600" />
+                  </button>
+                  <button onClick={() => remove(l.id)} aria-label="Delete location">
+                    <Trash2 size={14} className="text-ink-faint hover:text-alert-500" />
+                  </button>
+                </div>
               </div>
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {docsHere.length === 0 ? (

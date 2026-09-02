@@ -79,7 +79,7 @@ export function VisitorManagement() {
         <h2 className="rp-h2">Visiting hours & policy</h2>
         <ul className="rp-steps">
           <li>General wards: 11:00 AM - 1:00 PM and 5:00 PM - 7:00 PM.</li>
-          <li>ICU: one attendant at a time, by doctor's approval only.</li>
+          <li>ICU: one attendant at a time, by doctor&apos;s approval only.</li>
           <li>Maximum two visitor passes per patient at any time.</li>
           <li>All passes must be returned at checkout.</li>
         </ul>

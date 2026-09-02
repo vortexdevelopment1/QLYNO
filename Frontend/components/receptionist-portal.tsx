@@ -23,7 +23,22 @@ import { Settings } from "./receptionist/Settings";
 import { GlobalSearch } from "./receptionist/GlobalSearch";
 import { QuickActions } from "./receptionist/QuickActions";
 
-function ModuleBody({ moduleId, onNavigate }: { moduleId: ModuleId; onNavigate: (id: ModuleId) => void }) {
+function buildReceptionistSearchHref(query: string) {
+  const trimmed = query.trim();
+  return trimmed ? `/receptionist/search?q=${encodeURIComponent(trimmed)}` : "/receptionist/search";
+}
+
+function ModuleBody({
+  moduleId,
+  onNavigate,
+  searchQuery,
+  onSearchQueryChange,
+}: {
+  moduleId: ModuleId;
+  onNavigate: (id: ModuleId) => void;
+  searchQuery: string;
+  onSearchQueryChange: (query: string) => void;
+}) {
   switch (moduleId) {
     case "dashboard":
       return <Dashboard />;
@@ -52,7 +67,7 @@ function ModuleBody({ moduleId, onNavigate }: { moduleId: ModuleId; onNavigate: 
     case "settings":
       return <Settings />;
     case "search":
-      return <GlobalSearch />;
+      return <GlobalSearch query={searchQuery} onQueryChange={onSearchQueryChange} />;
     case "quick-actions":
       return <QuickActions onNavigate={onNavigate} />;
     default:
@@ -89,15 +104,38 @@ function TopbarNotifications() {
   );
 }
 
-function PortalShell({ moduleId }: { moduleId: ModuleId }) {
+function PortalShell({ moduleId, initialSearchQuery = "" }: { moduleId: ModuleId; initialSearchQuery?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState(initialSearchQuery);
+
+  React.useEffect(() => {
+    if (moduleId === "search") setSearchQuery(initialSearchQuery);
+  }, [initialSearchQuery, moduleId]);
 
   function handleNavigate(id: ModuleId) {
     const item = navItems.find((n) => n.id === id);
     setSidebarOpen(false);
-    if (item) router.push(item.href);
+    if (item) {
+      router.push(item.href);
+      return;
+    }
+    if (id === "search") router.push(buildReceptionistSearchHref(searchQuery));
+  }
+
+  function handleSearchChange(value: string) {
+    setSearchQuery(value);
+    const href = buildReceptionistSearchHref(value);
+    if (moduleId === "search") {
+      router.replace(href);
+      return;
+    }
+    router.push(href);
+  }
+
+  function handleSearchFocus() {
+    if (moduleId !== "search") router.push(buildReceptionistSearchHref(searchQuery));
   }
 
   return (
@@ -156,15 +194,16 @@ function PortalShell({ moduleId }: { moduleId: ModuleId }) {
             <button type="button" className="btn-secondary text-xs" onClick={() => router.push("/doctor/dashboard")}>
               <Stethoscope size={14} /> Doctor Module
             </button>
-            <div className="rp-topbar-search">
+            <form className="rp-topbar-search" onSubmit={(event) => event.preventDefault()}>
               <SearchIcon size={15} className="rp-input-icon" />
               <Input
                 className="!pl-9"
                 placeholder="Search patients, tokens, appointments…"
-                onFocus={() => handleNavigate("search")}
-                readOnly
+                value={searchQuery}
+                onFocus={handleSearchFocus}
+                onChange={(event) => handleSearchChange(event.target.value)}
               />
-            </div>
+            </form>
             <button className="rp-icon-btn" style={{ width: 34, height: 34 }} title="Quick actions" onClick={() => handleNavigate("quick-actions")}>
               <Zap size={16} />
             </button>
@@ -173,7 +212,12 @@ function PortalShell({ moduleId }: { moduleId: ModuleId }) {
           </header>
 
           <main className="rp-content">
-            <ModuleBody moduleId={moduleId} onNavigate={handleNavigate} />
+            <ModuleBody
+              moduleId={moduleId}
+              onNavigate={handleNavigate}
+              searchQuery={searchQuery}
+              onSearchQueryChange={handleSearchChange}
+            />
           </main>
         </div>
       </div>
@@ -186,6 +230,12 @@ function PortalShell({ moduleId }: { moduleId: ModuleId }) {
 // receptionist/layout.tsx — not here — so it persists as reception
 // staff move between modules (dashboard -> registration -> check-in, ...)
 // instead of resetting on every route change.
-export function ReceptionistModulePage({ moduleId }: { moduleId: ModuleId }) {
-  return <PortalShell moduleId={moduleId} />;
+export function ReceptionistModulePage({
+  moduleId,
+  initialSearchQuery,
+}: {
+  moduleId: ModuleId;
+  initialSearchQuery?: string;
+}) {
+  return <PortalShell moduleId={moduleId} initialSearchQuery={initialSearchQuery} />;
 }

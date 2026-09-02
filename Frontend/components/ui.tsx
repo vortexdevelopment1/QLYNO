@@ -456,6 +456,111 @@ export function EmptyState({
   );
 }
 
+export function Skeleton({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={clsx(
+        "animate-pulse rounded-md bg-gradient-to-r from-ink-faint/15 via-ink-faint/25 to-ink-faint/15 bg-[length:200%_100%]",
+        className
+      )}
+    />
+  );
+}
+
+export function SectionSkeleton({ action = true }: { action?: boolean }) {
+  return (
+    <div className="mb-6 flex flex-col gap-3 border-b border-line/80 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0 flex-1">
+        <Skeleton className="mb-2 h-3 w-36" />
+        <Skeleton className="h-9 w-64 max-w-full" />
+        <Skeleton className="mt-3 h-4 w-full max-w-xl" />
+      </div>
+      {action && <Skeleton className="h-10 w-36 shrink-0" />}
+    </div>
+  );
+}
+
+export function CardGridSkeleton({ cards = 6 }: { cards?: number }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: cards }).map((_, index) => (
+        <Card key={index}>
+          <div className="mb-4 flex items-center gap-3">
+            <Skeleton className="h-11 w-11 rounded-full" />
+            <div className="min-w-0 flex-1">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="mt-2 h-3 w-1/2" />
+            </div>
+          </div>
+          <Skeleton className="mb-3 h-3 w-full" />
+          <Skeleton className="mb-4 h-3 w-2/3" />
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+export function ListSkeleton({ rows = 6, avatar = true }: { rows?: number; avatar?: boolean }) {
+  return (
+    <Card padded={false}>
+      <div className="divide-y divide-line">
+        {Array.from({ length: rows }).map((_, index) => (
+          <div key={index} className="flex items-center gap-3.5 px-5 py-3.5">
+            {avatar && <Skeleton className="h-10 w-10 rounded-full" />}
+            <div className="min-w-0 flex-1">
+              <Skeleton className="h-4 w-48 max-w-full" />
+              <Skeleton className="mt-2 h-3 w-72 max-w-full" />
+            </div>
+            <Skeleton className="hidden h-6 w-20 sm:block" />
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+export function TableSkeleton({
+  columns = 5,
+  rows = 6,
+  wrapped = true,
+}: {
+  columns?: number;
+  rows?: number;
+  wrapped?: boolean;
+}) {
+  const table = (
+    <table className="w-full table-clean">
+      <thead>
+        <tr>
+          {Array.from({ length: columns }).map((_, index) => (
+            <th key={index}>
+              <Skeleton className="h-3 w-20" />
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: rows }).map((_, rowIndex) => (
+          <tr key={rowIndex}>
+            {Array.from({ length: columns }).map((_, columnIndex) => (
+              <td key={columnIndex}>
+                <Skeleton className={clsx("h-4", columnIndex === 0 ? "w-32" : "w-20")} />
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  return wrapped ? <Card padded={false}>{table}</Card> : table;
+}
+
 export function Pill({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "brand" | "clay" | "alert" | "sage" }) {
   const tones: Record<string, string> = {
     neutral: "bg-paper text-ink-soft border border-line",

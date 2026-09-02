@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { ClipboardList, Clock } from "lucide-react";
 import { ClinicQueueCard, WorkplaceBadge } from "@/components/doctor-workflow";
-import { Card, EmptyState, Pill, SectionHeading } from "@/components/ui";
+import { Card, EmptyState, Pill, SectionHeading, CardGridSkeleton, SectionSkeleton, Skeleton } from "@/components/ui";
 import { useDoctorWorkflow } from "@/lib/doctor-workflow-context";
 import { QueueStatus } from "@/lib/doctor-workflow-types";
 
@@ -18,7 +18,7 @@ const tabs: Array<{ label: string; value: QueueStatus | "all" }> = [
 ];
 
 export default function DoctorQueuePage() {
-  const { clinicQueue, completeQueueConsultation, getWorkplace, startQueueConsultation, workplaces } = useDoctorWorkflow();
+  const { clinicQueue, completeQueueConsultation, getWorkplace, isLoadingWorkflow, startQueueConsultation, workplaces } = useDoctorWorkflow();
   const [tab, setTab] = useState<QueueStatus | "all">("waiting");
   const [workplaceId, setWorkplaceId] = useState("all");
 
@@ -33,6 +33,24 @@ export default function DoctorQueuePage() {
   const waitingCount = clinicQueue.filter((item) => item.status === "waiting").length;
   const inConsultation = clinicQueue.filter((item) => item.status === "in_consultation").length;
   const activeWorkplace = workplaceId === "all" ? undefined : getWorkplace(workplaceId);
+
+  if (isLoadingWorkflow) {
+    return (
+      <div className="space-y-6">
+        <SectionSkeleton />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Card key={index} className="!p-4">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="mt-3 h-8 w-12" />
+              <Skeleton className="mt-2 h-3 w-32" />
+            </Card>
+          ))}
+        </div>
+        <CardGridSkeleton cards={4} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Plus, Send, Trash2 } from "lucide-react";
-import { Field, Modal } from "@/components/ui";
+import { Field, Modal, Skeleton } from "@/components/ui";
 import { CURRENT_DATE_ISO } from "@/lib/app-time";
 import { ApiSyncSkippedError, createBackendPrescription, getBackendBootstrap } from "@/lib/api-client";
 import { patients as seedPatients, patientInWorkContext } from "@/lib/mock-data";
@@ -47,6 +47,7 @@ export function PrescriptionIssueModal({
   const [advice, setAdvice] = useState("");
   const [signed, setSigned] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
+  const [isLoadingDoctorData, setIsLoadingDoctorData] = useState(true);
 
   const contextPatients = useMemo(
     () => patients.filter((patient) => patientInWorkContext(patient, workContext)),
@@ -74,6 +75,9 @@ export function PrescriptionIssueModal({
       })
       .catch(() => {
         if (!cancelled) setBackendDoctorId("doc-1");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingDoctorData(false);
       });
 
     return () => {
@@ -144,7 +148,7 @@ export function PrescriptionIssueModal({
         <>
           <button
             onClick={issuePrescription}
-            disabled={!signed || duplicateMedicineNames.length > 0}
+            disabled={isLoadingDoctorData || !signed || duplicateMedicineNames.length > 0}
             className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Send size={14} /> Issue Prescription
@@ -156,6 +160,28 @@ export function PrescriptionIssueModal({
         </>
       }
     >
+      {isLoadingDoctorData ? (
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          {Array.from({ length: 2 }).map((_, index) => (
+            <div key={index} className="rounded-card border border-line p-3.5">
+              <div className="mb-3 flex items-center justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4" />
+              </div>
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full sm:col-span-2" />
+              </div>
+            </div>
+          ))}
+          <Skeleton className="h-24 w-full" />
+        </div>
+      ) : (
+        <>
       <label className="eyebrow block mb-1.5">Patient</label>
       <select value={patientId} onChange={(event) => setPatientId(event.target.value)} className="input-field mb-5">
         {contextPatients.map((patient) => (
@@ -272,8 +298,10 @@ export function PrescriptionIssueModal({
           onChange={(event) => setSigned(event.target.checked)}
           className="h-4 w-4 accent-brand-500"
         />
-        Apply e-signature before issue
-      </label>
+          Apply e-signature before issue
+        </label>
+        </>
+      )}
     </Modal>
   );
 }

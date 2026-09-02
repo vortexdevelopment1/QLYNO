@@ -21,6 +21,7 @@ import { useMode } from "./mode-context";
 import { getBackendBootstrap, getBackendState, saveBackendState } from "./api-client";
 
 interface DoctorWorkflowContextValue {
+  isLoadingWorkflow: boolean;
   workplaces: Workplace[];
   shifts: DoctorShift[];
   clinicQueue: ClinicQueueItem[];
@@ -64,12 +65,18 @@ export function DoctorWorkflowProvider({ children }: { children: ReactNode }) {
   const [doctorTasks, setDoctorTasks] = useState<DoctorTaskItem[]>([]);
   const [backendDoctorId, setBackendDoctorId] = useState<string | undefined>();
   const [selectedShiftId, setSelectedShiftId] = useState<string | undefined>();
+  const [isLoadingWorkflow, setIsLoadingWorkflow] = useState(true);
 
   const activeShift = shifts.find((shift) => shift.status === "active");
   const selectedShift = shifts.find((shift) => shift.id === selectedShiftId);
 
   useEffect(() => {
     let cancelled = false;
+    let pendingLoads = 2;
+    const finishLoad = () => {
+      pendingLoads -= 1;
+      if (!cancelled && pendingLoads === 0) setIsLoadingWorkflow(false);
+    };
 
     getBackendBootstrap()
       .then((data) => {
@@ -85,26 +92,28 @@ export function DoctorWorkflowProvider({ children }: { children: ReactNode }) {
           setWorkplaces(doctorWorkplaces);
           setShifts(doctorShiftsSeed);
         }
-      });
+      })
+      .finally(finishLoad);
 
     getBackendState<Partial<WorkflowStateSnapshot>>(WORKFLOW_STATE_SCOPE, WORKFLOW_STATE_ENTITY_ID)
       .then((state) => {
-        if (cancelled || !state) return;
-        if (Array.isArray(state.clinicQueue)) setClinicQueue(state.clinicQueue);
-        if (Array.isArray(state.hospitalWorklist)) setHospitalWorklist(state.hospitalWorklist);
-        if (Array.isArray(state.doctorTasks)) setDoctorTasks(state.doctorTasks);
+        if (cancelled) return;
+        setClinicQueue(Array.isArray(state?.clinicQueue) ? state.clinicQueue : clinicQueueSeed);
+        setHospitalWorklist(Array.isArray(state?.hospitalWorklist) ? state.hospitalWorklist : hospitalWorklistSeed);
+        setDoctorTasks(Array.isArray(state?.doctorTasks) ? state.doctorTasks : doctorTasksSeed);
       })
       .catch(() => {
         if (cancelled) return;
         setClinicQueue(clinicQueueSeed);
         setHospitalWorklist(hospitalWorklistSeed);
         setDoctorTasks(doctorTasksSeed);
-      });
+      })
+      .finally(finishLoad);
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [setSelectedWorkplaceId]);
 
   function persistWorkflowState(snapshot: WorkflowStateSnapshot) {
     void saveBackendState(WORKFLOW_STATE_SCOPE, WORKFLOW_STATE_ENTITY_ID, snapshot).catch(() => undefined);
@@ -128,8 +137,6 @@ export function DoctorWorkflowProvider({ children }: { children: ReactNode }) {
       setSelectedWorkplaceId(workplace.id);
     }
   }
-
-  
 
   function completeShift(id: string) {
     setShifts((prev) => prev.map((shift) => (shift.id === id ? { ...shift, status: "completed" } : shift)));
@@ -209,6 +216,7 @@ export function DoctorWorkflowProvider({ children }: { children: ReactNode }) {
   }
 
   const value = {
+    isLoadingWorkflow,
     workplaces,
     shifts,
     clinicQueue,
@@ -240,3 +248,4 @@ export function useDoctorWorkflow() {
   if (!ctx) throw new Error("useDoctorWorkflow must be used within DoctorWorkflowProvider");
   return ctx;
 }
+ 

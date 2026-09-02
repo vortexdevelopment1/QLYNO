@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus, ScanLine } from "lucide-react";
-import { SectionHeading, Card, Avatar, Pill, OrderStatusBadge, Modal } from "@/components/ui";
+import { SectionHeading, Card, Avatar, Pill, OrderStatusBadge, Modal, SectionSkeleton, TableSkeleton } from "@/components/ui";
 import { patients as seedPatients, radiologyOrders as seedOrders, getPatient, matchesWorkContext, patientInWorkContext } from "@/lib/mock-data";
 import { useMode } from "@/lib/mode-context";
 import { ImagingType, Patient, RadiologyOrder } from "@/lib/types";
@@ -24,6 +24,7 @@ function RadiologyOrdersList() {
   const [imagingType, setImagingType] = useState<ImagingType>("X-Ray");
   const [bodyRegion, setBodyRegion] = useState("");
   const [priority, setPriority] = useState<"Routine" | "Urgent">("Routine");
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [syncMessage, setSyncMessage] = useState("");
   const contextPatients = useMemo(
     () => patients.filter((patient) => patientInWorkContext(patient, workContext)),
@@ -47,6 +48,9 @@ function RadiologyOrdersList() {
         setPatients(seedPatients);
         setOrders(seedOrders);
         setBackendDoctorId("doc-1");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingOrders(false);
       });
 
     return () => {
@@ -59,6 +63,15 @@ function RadiologyOrdersList() {
       contextPatients.some((patient) => patient.id === current) ? current : contextPatients[0]?.id ?? current
     );
   }, [contextPatients]);
+
+  if (isLoadingOrders) {
+    return (
+      <div>
+        <SectionSkeleton />
+        <TableSkeleton columns={5} rows={7} />
+      </div>
+    );
+  }
 
   async function placeOrder() {
     if (!bodyRegion.trim()) return;
@@ -210,7 +223,7 @@ function RadiologyOrdersList() {
 
 export default function RadiologyOrdersPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<><SectionSkeleton /><TableSkeleton columns={5} rows={7} /></>}>
       <RadiologyOrdersList />
     </Suspense>
   );

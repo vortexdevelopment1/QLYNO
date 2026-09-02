@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Search, Plus } from "lucide-react";
-import { SectionHeading, Card, Avatar, Pill, Modal } from "@/components/ui";
+import { SectionHeading, Card, Avatar, Pill, Modal, SectionSkeleton, TableSkeleton } from "@/components/ui";
 import { patients as seedPatients, diagnoses as seedDx, getPatient, matchesWorkContext, patientInWorkContext } from "@/lib/mock-data";
 import { useMode } from "@/lib/mode-context";
 import { DiagnosisEntry, Patient } from "@/lib/types";
@@ -32,6 +32,7 @@ export default function DiagnosisPage() {
   const [icdQuery, setIcdQuery] = useState("");
   const [patientId, setPatientId] = useState("");
   const [selectedCode, setSelectedCode] = useState<{ code: string; description: string } | null>(null);
+  const [isLoadingDiagnosis, setIsLoadingDiagnosis] = useState(true);
   const [syncMessage, setSyncMessage] = useState("");
   const contextPatients = useMemo(
     () => patients.filter((patient) => patientInWorkContext(patient, workContext)),
@@ -53,6 +54,9 @@ export default function DiagnosisPage() {
         if (cancelled) return;
         setPatients(seedPatients);
         setDxList(seedDx);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingDiagnosis(false);
       });
 
     return () => {
@@ -71,6 +75,15 @@ export default function DiagnosisPage() {
     if (!q) return icdReference;
     return icdReference.filter((c) => c.code.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
   }, [icdQuery]);
+
+  if (isLoadingDiagnosis) {
+    return (
+      <div>
+        <SectionSkeleton />
+        <TableSkeleton columns={5} rows={7} />
+      </div>
+    );
+  }
 
   async function addDiagnosis() {
     if (!selectedCode) return;

@@ -36,6 +36,7 @@ export function PatientRegistration() {
       gender: form.gender as any,
       phone: form.phone,
       department: form.department,
+      bloodGroup: form.bloodGroup || undefined,
       lastVisit: "19 Aug 2026",
       status: "New",
     });

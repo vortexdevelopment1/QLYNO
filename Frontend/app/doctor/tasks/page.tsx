@@ -4,14 +4,14 @@ import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { CheckCircle2, ClipboardCheck, Clock3, Siren } from "lucide-react";
 import { DoctorTaskCard, WorkplaceBadge } from "@/components/doctor-workflow";
-import { Card, EmptyState, Pill, SectionHeading } from "@/components/ui";
+import { Card, EmptyState, Pill, SectionHeading, CardGridSkeleton, SectionSkeleton, Skeleton } from "@/components/ui";
 import { useDoctorWorkflow } from "@/lib/doctor-workflow-context";
 
 const tabs = ["all", "urgent", "today", "upcoming", "completed"] as const;
 type TaskTab = (typeof tabs)[number];
 
 export default function DoctorTasksPage() {
-  const { completeTask, doctorTasks, getWorkplace, startTask, workplaces } = useDoctorWorkflow();
+  const { completeTask, doctorTasks, getWorkplace, isLoadingWorkflow, startTask, workplaces } = useDoctorWorkflow();
   const [tab, setTab] = useState<TaskTab>("all");
   const [workplaceId, setWorkplaceId] = useState("all");
 
@@ -25,6 +25,24 @@ export default function DoctorTasksPage() {
   const urgentCount = doctorTasks.filter((task) => task.status === "urgent").length;
   const todayCount = doctorTasks.filter((task) => task.status === "today").length;
   const activeWorkplace = workplaceId === "all" ? undefined : getWorkplace(workplaceId);
+
+  if (isLoadingWorkflow) {
+    return (
+      <div className="space-y-6">
+        <SectionSkeleton />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index} className="!p-4">
+              <Skeleton className="h-5 w-5" />
+              <Skeleton className="mt-3 h-4 w-24" />
+              <Skeleton className="mt-2 h-8 w-12" />
+            </Card>
+          ))}
+        </div>
+        <CardGridSkeleton cards={4} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

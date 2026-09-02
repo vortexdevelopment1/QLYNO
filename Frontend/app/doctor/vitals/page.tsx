@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Activity, Plus } from "lucide-react";
-import { SectionHeading, Card, Avatar, Modal } from "@/components/ui";
+import { SectionHeading, Card, Avatar, Modal, SectionSkeleton, Skeleton } from "@/components/ui";
 import { patientInWorkContext, patients as seedPatients } from "@/lib/mock-data";
 import { useMode } from "@/lib/mode-context";
 import { Patient, Vitals } from "@/lib/types";
@@ -14,6 +14,7 @@ export default function VitalsPage() {
   const [activeId, setActiveId] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ bp: "", pulse: "", temp: "", spo2: "", weight: "" });
+  const [isLoadingVitals, setIsLoadingVitals] = useState(true);
   const [syncMessage, setSyncMessage] = useState("");
 
   const contextPatients = useMemo(
@@ -32,6 +33,9 @@ export default function VitalsPage() {
       })
       .catch(() => {
         if (!cancelled) setPatients(seedPatients);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingVitals(false);
       });
 
     return () => {
@@ -44,6 +48,45 @@ export default function VitalsPage() {
       contextPatients.some((patient) => patient.id === current) ? current : contextPatients[0]?.id ?? current
     );
   }, [contextPatients]);
+
+  if (isLoadingVitals) {
+    return (
+      <div>
+        <SectionSkeleton />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <Card padded={false}>
+            <div className="px-4 pt-4 pb-2">
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <div className="divide-y divide-line">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="flex items-center gap-3 px-4 py-3">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="mt-2 h-3 w-24" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <div className="space-y-6 lg:col-span-2">
+            <Card>
+              <Skeleton className="mb-4 h-5 w-56" />
+              <div className="vitals-strip">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="vitals-cell">
+                    <Skeleton className="h-3 w-16 bg-white/15" />
+                    <Skeleton className="mt-3 h-8 w-20 bg-white/20" />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   async function logVitals() {
     if (!active || !form.bp || !form.pulse) return;

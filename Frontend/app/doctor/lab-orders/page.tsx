@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, FlaskConical } from "lucide-react";
-import { SectionHeading, Card, Avatar, Pill, Modal } from "@/components/ui";
+import { Eye, FileText, FlaskConical, Plus, Printer } from "lucide-react";
+import { SectionHeading, Card, Avatar, Pill, Modal, SectionSkeleton, Skeleton } from "@/components/ui";
 import { patients as seedPatients, labOrders as seedOrders, getPatient, matchesWorkContext, patientInWorkContext } from "@/lib/mock-data";
 import { useMode } from "@/lib/mode-context";
 import { LabOrder, OrderStatus, Patient } from "@/lib/types";
@@ -14,6 +14,42 @@ import { mergeLocalLabOrders, saveLocalLabOrder } from "@/lib/lab-order-local-st
 const commonTests = ["HbA1c", "Complete Blood Count", "Lipid Profile", "Thyroid Panel", "Troponin-I", "Liver Function Test", "Kidney Function Test", "Urinalysis"];
 
 const columns: OrderStatus[] = ["Ordered", "Sample Collected", "In Progress", "Report Ready", "Reviewed"];
+
+function reportRows(order: LabOrder) {
+  const name = order.testName.toLowerCase();
+  if (name.includes("lipid")) {
+    return [
+      ["Total Cholesterol", "184 mg/dL", "< 200"],
+      ["LDL Cholesterol", "112 mg/dL", "< 100"],
+      ["HDL Cholesterol", "48 mg/dL", "> 40"],
+      ["Triglycerides", "138 mg/dL", "< 150"],
+    ];
+  }
+  if (name.includes("thyroid") || name.includes("tsh")) {
+    return [
+      ["TSH", "3.8 uIU/mL", "0.4 - 4.0"],
+      ["Free T4", "1.1 ng/dL", "0.8 - 1.8"],
+      ["Free T3", "3.0 pg/mL", "2.3 - 4.2"],
+    ];
+  }
+  if (name.includes("troponin")) {
+    return [
+      ["Troponin-I", "0.08 ng/mL", "< 0.04"],
+      ["CK-MB", "6.1 ng/mL", "< 5.0"],
+    ];
+  }
+  if (name.includes("hba1c")) {
+    return [
+      ["HbA1c", "7.2 %", "< 5.7"],
+      ["Estimated Avg. Glucose", "160 mg/dL", "70 - 140"],
+    ];
+  }
+  return [
+    ["Hemoglobin", "13.4 g/dL", "12.0 - 15.5"],
+    ["WBC Count", "7,800 /uL", "4,000 - 11,000"],
+    ["Platelets", "2.5 lakh/uL", "1.5 - 4.5"],
+  ];
+}
 
 function LabOrdersBoard() {
   const params = useSearchParams();
@@ -27,6 +63,8 @@ function LabOrdersBoard() {
   const [testName, setTestName] = useState("");
   const [priority, setPriority] = useState<"Routine" | "Urgent">("Routine");
   const [source, setSource] = useState<"Internal" | "Partner Lab" | "External / Manual">("Internal");
+  const [selectedReport, setSelectedReport] = useState<LabOrder | null>(null);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [syncMessage, setSyncMessage] = useState("");
   const contextPatients = useMemo(
     () => patients.filter((patient) => patientInWorkContext(patient, workContext)),
@@ -50,6 +88,9 @@ function LabOrdersBoard() {
         setPatients(seedPatients);
         setOrders(mergeLocalLabOrders(seedOrders));
         setBackendDoctorId("doc-1");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingOrders(false);
       });
 
     return () => {
@@ -62,6 +103,39 @@ function LabOrdersBoard() {
       contextPatients.some((patient) => patient.id === current) ? current : contextPatients[0]?.id ?? current
     );
   }, [contextPatients]);
+
+  if (isLoadingOrders) {
+    return (
+      <div>
+        <SectionSkeleton />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-5">
+          {columns.map((column) => (
+            <div key={column}>
+              <div className="mb-2 flex items-center gap-1.5">
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+              <div className="space-y-2.5">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <Card key={index} className="!p-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <Skeleton className="h-6 w-6 rounded-full" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="mb-3 h-4 w-full" />
+                    <div className="flex items-center justify-between gap-2">
+                      <Skeleton className="h-6 w-16" />
+                      <Skeleton className="h-3 w-14" />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   async function placeOrder() {
     if (!testName.trim()) return;
@@ -188,6 +262,82 @@ function LabOrdersBoard() {
           </div>
         </div>
       </Modal>
+      <Modal
+        open={Boolean(selectedReport)}
+        title="Lab Report"
+        eyebrow="Reviewed Report"
+        onClose={() => setSelectedReport(null)}
+        size="lg"
+        footer={
+          <>
+            <button className="btn-secondary">
+              <Printer size={14} /> Print
+            </button>
+            <button onClick={() => setSelectedReport(null)} className="btn-secondary">
+              Close
+            </button>
+          </>
+        }
+      >
+        {selectedReport && (
+          <div className="space-y-4">
+            <div className="rounded-card border border-line bg-paper p-4">
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-700">
+                  <FileText size={17} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base font-semibold text-ink">{selectedReport.testName}</h3>
+                  <p className="mt-1 text-sm text-ink-muted">
+                    {patientById.get(selectedReport.patientId)?.name ?? getPatient(selectedReport.patientId)?.name ?? "Patient"} -{" "}
+                    {selectedReport.source}
+                  </p>
+                </div>
+                <Pill tone={selectedReport.priority === "Urgent" ? "alert" : "neutral"}>{selectedReport.priority}</Pill>
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-3 text-xs text-ink-muted sm:grid-cols-3">
+                <p>
+                  <span className="block font-semibold uppercase tracking-[0.06em] text-ink-faint">Order ID</span>
+                  {selectedReport.id}
+                </p>
+                <p>
+                  <span className="block font-semibold uppercase tracking-[0.06em] text-ink-faint">Ordered On</span>
+                  {selectedReport.orderedOn}
+                </p>
+                <p>
+                  <span className="block font-semibold uppercase tracking-[0.06em] text-ink-faint">Status</span>
+                  {selectedReport.status}
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-card border border-line">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-paper text-left text-[11px] uppercase tracking-[0.06em] text-ink-muted">
+                    <th className="border-b border-line px-4 py-2.5 font-semibold">Parameter</th>
+                    <th className="border-b border-line px-4 py-2.5 font-semibold">Result</th>
+                    <th className="border-b border-line px-4 py-2.5 font-semibold">Reference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportRows(selectedReport).map(([parameter, result, reference]) => (
+                    <tr key={parameter}>
+                      <td className="border-b border-line/70 px-4 py-3 text-ink-soft">{parameter}</td>
+                      <td className="border-b border-line/70 px-4 py-3 font-mono text-ink">{result}</td>
+                      <td className="border-b border-line/70 px-4 py-3 text-ink-muted">{reference}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="rounded-md border border-sage-100 bg-sage-50 px-3 py-2 text-xs leading-5 text-sage-500">
+              Reviewed by Dr. Ananya Rao. Correlate with symptoms, vitals and prior records before clinical decisions.
+            </p>
+          </div>
+        )}
+      </Modal>
       {syncMessage && <p className="mb-3 text-xs text-ink-muted">{syncMessage}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4">
@@ -210,7 +360,14 @@ function LabOrdersBoard() {
                       <p className="text-sm text-ink-soft mb-1">{o.testName}</p>
                       <div className="flex items-center justify-between">
                         <Pill tone={o.priority === "Urgent" ? "alert" : "neutral"}>{o.priority}</Pill>
-                        {col !== "Reviewed" && (
+                        {col === "Reviewed" ? (
+                          <button
+                            onClick={() => setSelectedReport(o)}
+                            className="inline-flex items-center gap-1 text-[11px] text-brand-600 hover:underline"
+                          >
+                            <Eye size={12} /> View report
+                          </button>
+                        ) : (
                           <button onClick={() => advance(o.id)} className="text-[11px] text-brand-600 hover:underline">
                             Advance →
                           </button>
@@ -232,7 +389,7 @@ function LabOrdersBoard() {
 
 export default function LabOrdersPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<SectionSkeleton />}>
       <LabOrdersBoard />
     </Suspense>
   );

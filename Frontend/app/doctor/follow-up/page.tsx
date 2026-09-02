@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus, CalendarClock } from "lucide-react";
-import { SectionHeading, Card, Avatar, Pill, EmptyState, Modal } from "@/components/ui";
+import { SectionHeading, Card, Avatar, Pill, EmptyState, Modal, ListSkeleton, SectionSkeleton } from "@/components/ui";
 import { patients as seedPatients, followUps as seedFollowUps, getPatient, matchesWorkContext, patientInWorkContext } from "@/lib/mock-data";
 import { useMode } from "@/lib/mode-context";
 import { FollowUp, Patient } from "@/lib/types";
@@ -25,6 +25,7 @@ export default function FollowUpPage() {
   const [patientId, setPatientId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [reason, setReason] = useState("");
+  const [isLoadingFollowUps, setIsLoadingFollowUps] = useState(true);
   const [syncMessage, setSyncMessage] = useState("");
   const contextPatients = useMemo(
     () => patients.filter((patient) => patientInWorkContext(patient, workContext)),
@@ -47,6 +48,9 @@ export default function FollowUpPage() {
         setPatients(seedPatients);
         setFollowUps(seedFollowUps);
         setBackendDoctorId("doc-1");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingFollowUps(false);
       });
 
     return () => {
@@ -92,6 +96,18 @@ export default function FollowUpPage() {
   }
 
   const groups: FollowUp["status"][] = ["Overdue", "Due Today", "Upcoming", "Completed"];
+
+  if (isLoadingFollowUps) {
+    return (
+      <div>
+        <SectionSkeleton />
+        <div className="space-y-6">
+          <ListSkeleton rows={4} />
+          <ListSkeleton rows={3} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

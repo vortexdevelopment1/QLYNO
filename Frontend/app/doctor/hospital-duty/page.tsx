@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { ArrowRight, ClipboardCheck, Hospital, LogOut, UserRoundCheck } from "lucide-react";
 import { HospitalPatientCard, WorkplaceBadge } from "@/components/doctor-workflow";
-import { Card, EmptyState, Field, Modal, Pill, SectionHeading } from "@/components/ui";
+import { Card, EmptyState, Field, Modal, Pill, SectionHeading, CardGridSkeleton, SectionSkeleton, Skeleton } from "@/components/ui";
 import { useDoctorWorkflow } from "@/lib/doctor-workflow-context";
 import { HospitalWorkStatus } from "@/lib/doctor-workflow-types";
 import { CURRENT_DATE_ISO } from "@/lib/app-time";
@@ -28,6 +28,7 @@ export default function HospitalDutyPage() {
     getWorkplace,
     handoverHospitalItem,
     hospitalWorklist,
+    isLoadingWorkflow,
     shifts,
     startShift,
     workplaces,
@@ -53,6 +54,28 @@ export default function HospitalDutyPage() {
   const requests = hospitalWorklist.filter((item) => item.workplaceId === workplaceId && item.status === "request").length;
   const critical = hospitalWorklist.filter((item) => item.workplaceId === workplaceId && item.priority === "Critical").length;
   const pending = hospitalWorklist.filter((item) => item.workplaceId === workplaceId && item.pending && item.pending.length > 0).length;
+
+  if (isLoadingWorkflow) {
+    return (
+      <div className="space-y-6">
+        <SectionSkeleton />
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-7 w-32" />
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index} className="!p-4">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="mt-3 h-8 w-12" />
+              <Skeleton className="mt-2 h-3 w-32" />
+            </Card>
+          ))}
+        </div>
+        <CardGridSkeleton cards={4} />
+      </div>
+    );
+  }
 
   function finishHandover() {
     unresolved.forEach((item) => handoverHospitalItem(item.id, handoverDoctor));

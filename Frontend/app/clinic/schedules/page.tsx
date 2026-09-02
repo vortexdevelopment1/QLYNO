@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SectionHeading, Card, Avatar, AvailabilityDot, Pill } from "@/components/ui";
+import { SectionHeading, Card, Avatar, AvailabilityDot, Pill, SectionSkeleton, TableSkeleton, Skeleton } from "@/components/ui";
 import { doctors as seedDoctors, clinic } from "@/lib/mock-data";
 import { Doctor } from "@/lib/types";
 import { getBackendBootstrap, getBackendState, saveBackendState } from "@/lib/api-client";
@@ -20,6 +20,7 @@ export default function SchedulesPage() {
   const { selectedWorkplaceId } = useMode();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [schedule, setSchedule] = useState<Record<string, boolean[]>>({});
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(true);
   const [syncMessage, setSyncMessage] = useState("");
 
   useEffect(() => {
@@ -38,12 +39,28 @@ export default function SchedulesPage() {
         if (cancelled) return;
         setDoctors(seedDoctors);
         setSchedule(scheduleSeed);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingSchedules(false);
       });
 
     return () => {
       cancelled = true;
     };
   }, [selectedWorkplaceId]);
+
+  if (isLoadingSchedules) {
+    return (
+      <div>
+        <SectionSkeleton action={false} />
+        <Card className="mb-6">
+          <Skeleton className="mb-3 h-3 w-28" />
+          <Skeleton className="h-4 w-80 max-w-full" />
+        </Card>
+        <TableSkeleton columns={8} rows={5} />
+      </div>
+    );
+  }
 
   function toggle(doctorId: string, dayIdx: number) {
     setSchedule((prev) => {

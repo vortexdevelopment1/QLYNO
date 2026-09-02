@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Video, MapPin, ChevronRight, Plus } from "lucide-react";
-import { SectionHeading, Card, Avatar, EmptyState, Modal, Field, TimePicker } from "@/components/ui";
+import { Video, MapPin, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { SectionHeading, Card, Avatar, EmptyState, Modal, Field, TimePicker, TableSkeleton } from "@/components/ui";
 import {
   appointments as seedAppointments,
   clinic,
@@ -19,7 +19,9 @@ import { CURRENT_DATE_ISO } from "@/lib/app-time";
 import {
   ApiSyncSkippedError,
   createBackendAppointment,
+  deleteBackendAppointment,
   getBackendBootstrap,
+  updateBackendAppointment,
   updateBackendAppointmentStatus,
 } from "@/lib/api-client";
 import { ConsultationForm } from "@/components/doctor-consultation-form";
@@ -53,6 +55,7 @@ export default function AppointmentsPage() {
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
   const [tab, setTab] = useState<"today" | "upcoming" | "past" | "all">("today");
   const [showForm, setShowForm] = useState(false);
+  const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [selectedConsultation, setSelectedConsultation] = useState<{
     appointmentId: string;
     patientId: string;
@@ -144,10 +147,45 @@ export default function AppointmentsPage() {
     }
   }
 
-  async function createAppointment() {
+  function resetForm() {
+    setEditingAppointmentId(null);
+    setForm((prev) => ({
+      ...prev,
+      patientId: contextPatients[0]?.id ?? prev.patientId,
+      doctorId: appointmentDoctors[0]?.id ?? prev.doctorId,
+      locationId: contextLocations[0]?.id ?? prev.locationId,
+      date: TODAY,
+      time: "12:00 PM",
+      durationMins: "20",
+      type: "In-Person",
+      reason: "",
+    }));
+  }
+
+  function openCreateForm() {
+    resetForm();
+    setShowForm(true);
+  }
+
+  function openEditForm(appointment: Appointment) {
+    setEditingAppointmentId(appointment.id);
+    setForm({
+      patientId: appointment.patientId,
+      doctorId: appointment.doctorId,
+      locationId: appointment.locationId ?? contextLocations[0]?.id ?? "",
+      date: appointment.date,
+      time: appointment.time,
+      durationMins: String(appointment.durationMins),
+      type: appointment.type,
+      reason: appointment.reason,
+    });
+    setShowForm(true);
+  }
+
+  async function saveAppointment() {
     if (!canScheduleAppointment || !form.reason.trim()) return;
     const nextAppointment: Appointment = {
-      id: `local-apt-${Date.now()}`,
+      id: editingAppointmentId ?? `local-apt-${Date.now()}`,
       patientId: form.patientId,
       doctorId: form.doctorId,
       locationId: form.locationId,
@@ -159,6 +197,33 @@ export default function AppointmentsPage() {
       status: "Scheduled",
       reason: form.reason,
     };
+
+    if (editingAppointmentId) {
+      const existing = appointments.find((appointment) => appointment.id === editingAppointmentId);
+      const localUpdate = { ...nextAppointment, status: existing?.status ?? "Scheduled" };
+      try {
+        const savedAppointment = await updateBackendAppointment(editingAppointmentId, {
+          ...nextAppointment,
+          workplaceId: backendWorkplaceId ?? selectedWorkplaceId,
+        });
+        setSyncMessage("Appointment changes synced to backend.");
+        setAppointments((prev) =>
+          prev.map((appointment) =>
+            appointment.id === editingAppointmentId
+              ? { ...savedAppointment, status: existing?.status ?? savedAppointment.status }
+              : appointment
+          )
+        );
+      } catch (error) {
+        setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock appointment updated locally." : "Backend sync failed; local appointment update kept.");
+        setAppointments((prev) => prev.map((appointment) => (appointment.id === editingAppointmentId ? localUpdate : appointment)));
+      }
+      resetForm();
+      setTab("all");
+      setShowForm(false);
+      return;
+    }
+
     try {
       const savedAppointment = await createBackendAppointment({
         ...nextAppointment,
@@ -170,9 +235,21 @@ export default function AppointmentsPage() {
       setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock appointment saved locally." : "Backend sync failed; local appointment kept.");
       setAppointments((prev) => [nextAppointment, ...prev]);
     }
-    setForm((prev) => ({ ...prev, date: TODAY, time: "12:00 PM", durationMins: "20", reason: "" }));
+    resetForm();
     setTab("all");
     setShowForm(false);
+  }
+
+  async function deleteAppointment(id: string) {
+    if (!window.confirm("Delete this appointment from the schedule?")) return;
+
+    try {
+      await deleteBackendAppointment(id);
+      setSyncMessage("Appointment deleted from backend.");
+    } catch (error) {
+      setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock appointment deleted locally." : "Backend delete failed; local appointment removed.");
+    }
+    setAppointments((prev) => prev.filter((appointment) => appointment.id !== id));
   }
 
   return (
@@ -183,7 +260,7 @@ export default function AppointmentsPage() {
         description={`View, manage and organize ${workContext} appointments only.`}
         action={
           <button
-            onClick={() => setShowForm((value) => !value)}
+            onClick={openCreateForm}
             disabled={isLoadingAppointments || !canScheduleAppointment}
             className="btn-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -194,26 +271,35 @@ export default function AppointmentsPage() {
 
       <Modal
         open={showForm}
-        title="Schedule Appointment"
+        title={editingAppointmentId ? "Edit Appointment" : "Schedule Appointment"}
         eyebrow="Appointment Management"
-        onClose={() => setShowForm(false)}
+        onClose={() => {
+          resetForm();
+          setShowForm(false);
+        }}
         footer={
           <>
             <button
-              onClick={createAppointment}
+              onClick={saveAppointment}
               disabled={!canScheduleAppointment}
               className="btn-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Schedule Appointment
+              {editingAppointmentId ? "Save Changes" : "Schedule Appointment"}
             </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary">
+            <button
+              onClick={() => {
+                resetForm();
+                setShowForm(false);
+              }}
+              className="btn-secondary"
+            >
               Cancel
             </button>
           </>
         }
       >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Patient" className="sm:col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Patient" className="sm:col-span-2">
             <select
               value={form.patientId}
               onChange={(event) => setForm((prev) => ({ ...prev, patientId: event.target.value }))}
@@ -225,8 +311,8 @@ export default function AppointmentsPage() {
                 </option>
               ))}
             </select>
-            </Field>
-            <Field label="Doctor">
+          </Field>
+          <Field label="Doctor">
             <select
               value={form.doctorId}
               onChange={(event) => setForm((prev) => ({ ...prev, doctorId: event.target.value }))}
@@ -238,8 +324,8 @@ export default function AppointmentsPage() {
                 </option>
               ))}
             </select>
-            </Field>
-            <Field label="Location">
+          </Field>
+          <Field label="Location">
             <select
               value={form.locationId}
               onChange={(event) => setForm((prev) => ({ ...prev, locationId: event.target.value }))}
@@ -251,24 +337,24 @@ export default function AppointmentsPage() {
                 </option>
               ))}
             </select>
-            </Field>
-            <Field label="Date">
+          </Field>
+          <Field label="Date">
             <input
               value={form.date}
               onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
               type="date"
               className="input-field"
             />
-            </Field>
-            <Field label="Time">
+          </Field>
+          <Field label="Time">
             <TimePicker
               value={form.time}
               onChange={(value) => setForm((prev) => ({ ...prev, time: value }))}
               format="12h"
               ariaLabel="Appointment time"
             />
-            </Field>
-            <Field label="Duration">
+          </Field>
+          <Field label="Duration">
             <select
               value={form.durationMins}
               onChange={(event) => setForm((prev) => ({ ...prev, durationMins: event.target.value }))}
@@ -279,8 +365,8 @@ export default function AppointmentsPage() {
               <option value="30">30 min</option>
               <option value="45">45 min</option>
             </select>
-            </Field>
-            <Field label="Type">
+          </Field>
+          <Field label="Type">
             <select
               value={form.type}
               onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value as AppointmentType }))}
@@ -290,16 +376,16 @@ export default function AppointmentsPage() {
               <option>Video</option>
               <option>Follow-up</option>
             </select>
-            </Field>
-            <Field label="Reason for Visit" className="sm:col-span-2">
+          </Field>
+          <Field label="Reason for Visit" className="sm:col-span-2">
             <input
               value={form.reason}
               onChange={(event) => setForm((prev) => ({ ...prev, reason: event.target.value }))}
               placeholder="Reason for visit"
               className="input-field"
             />
-            </Field>
-          </div>
+          </Field>
+        </div>
       </Modal>
 
       <Modal
@@ -337,7 +423,7 @@ export default function AppointmentsPage() {
 
       <Card padded={false}>
         {isLoadingAppointments ? (
-          <EmptyState title="Loading appointments" description="Fetching the latest appointment data." />
+          <TableSkeleton columns={6} rows={6} wrapped={false} />
         ) : filtered.length === 0 ? (
           <EmptyState title="No appointments here" description={`Nothing scheduled in this ${workContext} range yet.`} />
         ) : (
@@ -366,7 +452,7 @@ export default function AppointmentsPage() {
                     </td>
                     <td>
                       <span className="font-mono text-xs">
-                        {apt.date} · {apt.time}
+                        {apt.date} - {apt.time}
                       </span>
                       <span className="block text-[11px] text-ink-faint">{apt.durationMins} min</span>
                     </td>
@@ -391,13 +477,25 @@ export default function AppointmentsPage() {
                       </select>
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedConsultation({ appointmentId: apt.id, patientId: patient.id })}
-                        className="btn-ghost text-xs"
-                      >
-                        Open <ChevronRight size={13} />
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button type="button" onClick={() => openEditForm(apt)} className="btn-ghost text-xs">
+                          <Pencil size={13} /> Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteAppointment(apt.id)}
+                          className="btn-ghost text-xs text-alert-500"
+                        >
+                          <Trash2 size={13} /> Delete
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedConsultation({ appointmentId: apt.id, patientId: patient.id })}
+                          className="btn-ghost text-xs"
+                        >
+                          Open <ChevronRight size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

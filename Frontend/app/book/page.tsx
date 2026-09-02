@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CalendarDays, CheckCircle2, MapPin, Stethoscope, UserRound } from "lucide-react";
-import { Card, Pill, SectionHeading, TimePicker } from "@/components/ui";
+import { Card, Pill, SectionHeading, SectionSkeleton, Skeleton, TimePicker } from "@/components/ui";
 import { patients as seedPatients } from "@/lib/mock-data";
 import { ApiSyncSkippedError, createBackendAppointment, getBackendBootstrap } from "@/lib/api-client";
 import { CURRENT_DATE_ISO } from "@/lib/app-time";
@@ -43,6 +43,7 @@ function BookingFlow() {
   const [mode, setMode] = useState(affiliation.modes[0]);
   const [slot, setSlot] = useState(slots[3]);
   const [confirmed, setConfirmed] = useState(false);
+  const [isLoadingBookingData, setIsLoadingBookingData] = useState(true);
   const [syncMessage, setSyncMessage] = useState("");
 
   const serviceOptions = useMemo(() => affiliation.serviceIds.map((id) => getService(id)).filter(Boolean), [affiliation]);
@@ -65,12 +66,58 @@ function BookingFlow() {
         if (cancelled) return;
         setPatientRows(seedPatients);
         setSyncMessage("Backend unavailable; booking cannot be saved right now.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingBookingData(false);
       });
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  if (isLoadingBookingData) {
+    return (
+      <div>
+        <SectionSkeleton action={false} />
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className="space-y-6 xl:col-span-2">
+            <Card>
+              <Skeleton className="mb-4 h-3 w-44" />
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <Skeleton key={index} className="h-20 w-full" />
+                ))}
+              </div>
+            </Card>
+            <Card>
+              <Skeleton className="mb-4 h-3 w-44" />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton key={index} className="h-10 w-full" />
+                ))}
+              </div>
+              <Skeleton className="mt-5 h-10 w-40" />
+            </Card>
+          </div>
+          <Card>
+            <Skeleton className="mb-5 h-6 w-40" />
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="flex gap-2.5">
+                  <Skeleton className="h-4 w-4" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="mt-2 h-3 w-28" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   function updateAffiliation(nextId: string) {
     const next = getAffiliation(nextId);
@@ -253,7 +300,7 @@ function BookingFlow() {
 
 export default function BookPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<SectionSkeleton action={false} />}>
       <BookingFlow />
     </Suspense>
   );

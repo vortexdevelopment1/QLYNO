@@ -31,7 +31,7 @@ export class ApiSyncSkippedError extends Error {
   }
 }
 
-export function isUuid(value: string | undefined) {
+export function isUuid(value: string | undefined): value is string {
   return Boolean(value && UUID_RE.test(value));
 }
 
@@ -134,7 +134,9 @@ interface BackendPatient {
   id: string;
   fullName: string;
   gender: "MALE" | "FEMALE" | "OTHER" | "UNKNOWN";
+  dateOfBirth?: string | null;
   phone?: string | null;
+  email?: string | null;
   bloodGroup?: string | null;
   primaryDoctorId?: string | null;
   workplaces: Array<{ localMrn?: string | null; workplaceId: string }>;
@@ -461,8 +463,25 @@ function formatTime(value: string) {
   }).format(new Date(value));
 }
 
-export async function getBackendBootstrap() {
-  const payload = await requestJson<{ ok: true; data: BackendBootstrapPayload }>("/api/bootstrap?ensureDemo=false");
+function ageFromBirthDate(value?: string | null) {
+  if (!value) return 0;
+
+  const birthDate = new Date(value);
+  if (Number.isNaN(birthDate.getTime())) return 0;
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDelta = today.getMonth() - birthDate.getMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < birthDate.getDate())) {
+    age -= 1;
+  }
+
+  return Math.max(age, 0);
+}
+
+export async function getBackendBootstrap(options: { ensureDemo?: boolean } = {}) {
+  const ensureDemo = options.ensureDemo ? "true" : "false";
+  const payload = await requestJson<{ ok: true; data: BackendBootstrapPayload }>(`/api/bootstrap?ensureDemo=${ensureDemo}`);
   const clinicWorkplace =
     payload.data.workplaces.find((workplace) => workplace.type === "CLINIC") ?? payload.data.workplaces[0];
 
@@ -496,7 +515,7 @@ export async function getBackendBootstrap() {
       id: patient.id,
       mrn: workplaceLink?.localMrn ?? patient.id.slice(0, 8),
       name: patient.fullName,
-      age: 0,
+      age: ageFromBirthDate(patient.dateOfBirth),
       gender: frontendGender(patient.gender),
       phone: patient.phone ?? "Not added",
       avatarInitials: initials(patient.fullName),
@@ -791,7 +810,9 @@ export async function createBackendPatient(input: {
   qlynoId: string;
   fullName: string;
   gender: "MALE" | "FEMALE" | "OTHER" | "UNKNOWN";
+  dateOfBirth?: string;
   phone?: string;
+  email?: string;
   bloodGroup?: string;
   primaryDoctorId?: string;
   workplaceId?: string;
@@ -809,12 +830,86 @@ export async function createBackendPatient(input: {
   });
 }
 
+export async function updateBackendPatient(
+  id: string,
+  input: {
+    fullName?: string;
+    gender?: "MALE" | "FEMALE" | "OTHER" | "UNKNOWN";
+    phone?: string;
+    bloodGroup?: string;
+    primaryDoctorId?: string;
+  }
+) {
+  requireUuid(id, "Patient id");
+
+  return requestJson(`/api/patients/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      ...input,
+      primaryDoctorId: isUuid(input.primaryDoctorId) ? input.primaryDoctorId : undefined,
+    }),
+  });
+}
+
+export async function deleteBackendPatient(id: string) {
+  requireUuid(id, "Patient id");
+
+  return requestJson(`/api/patients/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export async function updateBackendAppointmentStatus(id: string, status: AppointmentStatus) {
   requireUuid(id, "Appointment id");
 
   return requestJson(`/api/appointments/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status: appointmentStatus(status) }),
+  });
+}
+
+export async function updateBackendAppointment(
+  id: string,
+  input: {
+    patientId: string;
+    doctorId: string;
+    workplaceId: string;
+    locationId?: string;
+    date: string;
+    time: string;
+    durationMins: number;
+    type: AppointmentType;
+    reason: string;
+  }
+) {
+  requireUuid(id, "Appointment id");
+  requireUuid(input.patientId, "Patient id");
+  requireUuid(input.doctorId, "Doctor id");
+  requireUuid(input.workplaceId, "Workplace id");
+  if (input.locationId) requireUuid(input.locationId, "Location id");
+
+  const payload = await requestJson<{ ok: true; data: BackendAppointment }>(`/api/appointments/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      patientId: input.patientId,
+      doctorId: input.doctorId,
+      workplaceId: input.workplaceId,
+      locationId: input.locationId,
+      scheduledAt: toIsoDateTime(input.date, input.time),
+      durationMinutes: input.durationMins,
+      mode: appointmentMode(input.type),
+      reason: input.reason,
+    }),
+  });
+
+  return toFrontendAppointment(payload.data);
+}
+
+export async function deleteBackendAppointment(id: string) {
+  requireUuid(id, "Appointment id");
+
+  return requestJson(`/api/appointments/${id}`, {
+    method: "DELETE",
   });
 }
 
@@ -944,6 +1039,36 @@ export async function createBackendClinicService(input: {
   });
 
   return toFrontendService(payload.data);
+}
+
+export async function updateBackendClinicService(
+  id: string,
+  input: {
+    name: string;
+    durationMinutes: number;
+    price: number;
+    eligibleDoctorIds: string[];
+  }
+) {
+  requireUuid(id, "Service id");
+
+  const payload = await requestJson<{ ok: true; data: BackendClinicService }>(`/api/clinic/services/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      ...input,
+      eligibleDoctorIds: input.eligibleDoctorIds.filter(isUuid),
+    }),
+  });
+
+  return toFrontendService(payload.data);
+}
+
+export async function deleteBackendClinicService(id: string) {
+  requireUuid(id, "Service id");
+
+  return requestJson(`/api/clinic/services/${id}`, {
+    method: "DELETE",
+  });
 }
 
 export async function createBackendDiagnosis(input: {
@@ -1119,6 +1244,42 @@ export async function createBackendClinicLocation(input: {
   } satisfies ClinicLocation;
 }
 
+export async function updateBackendClinicLocation(
+  id: string,
+  input: {
+    name: string;
+    address: string;
+    isPrimary?: boolean;
+  }
+) {
+  requireUuid(id, "Location id");
+
+  const payload = await requestJson<{ ok: true; data: BackendLocation }>(`/api/clinic/locations/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      name: input.name,
+      addressLine1: input.address,
+      city: "",
+      isPrimary: input.isPrimary,
+    }),
+  });
+
+  return {
+    id: payload.data.id,
+    name: payload.data.name,
+    address: `${payload.data.addressLine1}${payload.data.city ? `, ${payload.data.city}` : ""}`,
+    isPrimary: payload.data.isPrimary,
+  } satisfies ClinicLocation;
+}
+
+export async function deleteBackendClinicLocation(id: string) {
+  requireUuid(id, "Location id");
+
+  return requestJson(`/api/clinic/locations/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export async function createBackendClinicDoctor(input: {
   workplaceId?: string;
   fullName: string;
@@ -1147,6 +1308,42 @@ export async function createBackendClinicDoctor(input: {
   } satisfies Doctor;
 }
 
+export async function updateBackendClinicDoctor(
+  id: string,
+  input: {
+    fullName: string;
+    specialty: string;
+    qualifications?: string;
+    experienceYears?: number;
+  }
+) {
+  requireUuid(id, "Doctor id");
+
+  const payload = await requestJson<{ ok: true; data: BackendDoctor }>(`/api/clinic/doctors/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+
+  return {
+    id: payload.data.id,
+    name: payload.data.fullName,
+    specialty: payload.data.specialty,
+    qualifications: payload.data.qualifications ?? "Verification pending",
+    experienceYears: payload.data.experienceYears ?? 0,
+    avatarInitials: initials(payload.data.fullName),
+    availability: "Off",
+  } satisfies Doctor;
+}
+
+export async function deleteBackendClinicDoctor(id: string, workplaceId?: string) {
+  requireUuid(id, "Doctor id");
+  const query = isUuid(workplaceId) ? `?workplaceId=${workplaceId}` : "";
+
+  return requestJson(`/api/clinic/doctors/${id}${query}`, {
+    method: "DELETE",
+  });
+}
+
 export async function createBackendClinicStaff(input: {
   workplaceId: string;
   fullName: string;
@@ -1164,6 +1361,33 @@ export async function createBackendClinicStaff(input: {
   });
 
   return toFrontendStaff(payload.data);
+}
+
+export async function updateBackendClinicStaff(
+  id: string,
+  input: {
+    fullName: string;
+    role: StaffMember["role"];
+    status?: "ACTIVE" | "INVITED" | "SUSPENDED" | "ARCHIVED";
+  }
+) {
+  requireUuid(id, "Staff id");
+
+  const payload = await requestJson<{ ok: true; data: BackendStaff }>(`/api/clinic/staff/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+
+  return toFrontendStaff(payload.data);
+}
+
+export async function deleteBackendClinicStaff(id: string, workplaceId?: string) {
+  requireUuid(id, "Staff id");
+  const query = isUuid(workplaceId) ? `?workplaceId=${workplaceId}` : "";
+
+  return requestJson(`/api/clinic/staff/${id}${query}`, {
+    method: "DELETE",
+  });
 }
 
 export async function updateBackendOrderStatus(id: string, status: OrderStatus) {

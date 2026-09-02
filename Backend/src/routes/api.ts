@@ -293,6 +293,13 @@ const serviceSchema = z.object({
   eligibleDoctorIds: z.array(z.string().uuid()).default([]),
 });
 
+const serviceUpdateSchema = serviceSchema
+  .omit({ workplaceId: true })
+  .partial()
+  .extend({
+    eligibleDoctorIds: z.array(z.string().uuid()).optional(),
+  });
+
 const diagnosisSchema = z.object({
   patientId: z.string().uuid(),
   encounterId: z.string().uuid().optional(),
@@ -338,6 +345,8 @@ const doctorProfileSchema = z.object({
   email: z.string().email().optional(),
 });
 
+const doctorProfileUpdateSchema = doctorProfileSchema.omit({ workplaceId: true, email: true }).partial();
+
 const locationSchema = z.object({
   workplaceId: z.string().uuid(),
   name: z.string().min(1),
@@ -350,12 +359,18 @@ const locationSchema = z.object({
   isPrimary: z.boolean().default(false),
 });
 
+const locationUpdateSchema = locationSchema.omit({ workplaceId: true }).partial();
+
 const staffSchema = z.object({
   workplaceId: z.string().uuid(),
   locationId: z.string().uuid().optional(),
   fullName: z.string().min(1),
   role: z.string().min(1),
   email: z.string().email().optional(),
+});
+
+const staffUpdateSchema = staffSchema.omit({ workplaceId: true, locationId: true, email: true }).partial().extend({
+  status: z.enum(["ACTIVE", "INVITED", "SUSPENDED", "ARCHIVED"]).optional(),
 });
 
 const messageSchema = z.object({
@@ -420,7 +435,17 @@ router.get(
 
     const [doctors, workplaces, patients, appointments, shifts, services, rooms, tasks, notifications, diagnoses, prescriptions, orders, followUps, vitals, staff] =
       await Promise.all([
-        prisma.doctorProfile.findMany({ include: { workplaces: { include: { workplace: true } } } }),
+        prisma.doctorProfile.findMany({
+          where: {
+            workplaces: {
+              some: {
+                workplaceId: query.workplaceId,
+                status: { not: "ARCHIVED" },
+              },
+            },
+          },
+          include: { workplaces: { include: { workplace: true } } },
+        }),
         prisma.workplace.findMany({ include: { locations: true } }),
         prisma.patient.findMany({
           where: query.doctorId ? { primaryDoctorId: query.doctorId } : undefined,
@@ -472,7 +497,15 @@ router.get(
           take: 200,
         }),
         prisma.vitalSet.findMany({ orderBy: { recordedAt: "desc" }, take: 200 }),
-        prisma.staffProfile.findMany({ include: { memberships: true }, orderBy: { createdAt: "desc" }, take: 100 }),
+        prisma.staffProfile.findMany({
+          where: {
+            status: { not: "ARCHIVED" },
+            memberships: query.workplaceId ? { some: { workplaceId: query.workplaceId, status: { not: "ARCHIVED" } } } : undefined,
+          },
+          include: { memberships: true },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        }),
       ]);
 
     response.json({ ok: true, data: { doctors, workplaces, patients, appointments, shifts, services, rooms, tasks, notifications, diagnoses, prescriptions, orders, followUps, vitals, staff } });
@@ -546,6 +579,50 @@ router.post(
     });
 
     response.status(201).json({ ok: true, data: patient });
+  })
+);
+
+router.patch(
+  "/patients/:id",
+  asyncHandler(async (request, response) => {
+    const prisma = prismaOr503(response);
+    if (!prisma) return;
+
+    const { id } = idParamSchema.parse(request.params);
+    const body = z
+      .object({
+        fullName: z.string().min(1).optional(),
+        gender: z.enum(["MALE", "FEMALE", "OTHER", "UNKNOWN"]).optional(),
+        dateOfBirth: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().email().optional(),
+        bloodGroup: z.string().optional(),
+        primaryDoctorId: z.string().uuid().nullable().optional(),
+      })
+      .parse(request.body);
+
+    const patient = await prisma.patient.update({
+      where: { id },
+      data: {
+        ...body,
+        dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : undefined,
+      },
+      include: { workplaces: true, allergies: true, conditions: true },
+    });
+
+    response.json({ ok: true, data: patient });
+  })
+);
+
+router.delete(
+  "/patients/:id",
+  asyncHandler(async (request, response) => {
+    const prisma = prismaOr503(response);
+    if (!prisma) return;
+
+    const { id } = idParamSchema.parse(request.params);
+    await prisma.patient.delete({ where: { id } });
+    response.json({ ok: true });
   })
 );
 
@@ -641,6 +718,38 @@ router.post(
     });
 
     response.status(201).json({ ok: true, data: appointment });
+  })
+);
+
+router.patch(
+  "/appointments/:id",
+  asyncHandler(async (request, response) => {
+    const prisma = prismaOr503(response);
+    if (!prisma) return;
+
+    const { id } = idParamSchema.parse(request.params);
+    const body = appointmentSchema.partial().parse(request.body);
+    const appointment = await prisma.appointment.update({
+      where: { id },
+      data: {
+        ...body,
+        scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined,
+      },
+    });
+
+    response.json({ ok: true, data: appointment });
+  })
+);
+
+router.delete(
+  "/appointments/:id",
+  asyncHandler(async (request, response) => {
+    const prisma = prismaOr503(response);
+    if (!prisma) return;
+
+    const { id } = idParamSchema.parse(request.params);
+    await prisma.appointment.delete({ where: { id } });
+    response.json({ ok: true });
   })
 );
 
@@ -967,6 +1076,48 @@ router.post(
   })
 );
 
+router.patch(
+  "/clinic/services/:id",
+  asyncHandler(async (request, response) => {
+    const prisma = prismaOr503(response);
+    if (!prisma) return;
+
+    const { id } = idParamSchema.parse(request.params);
+    const body = serviceUpdateSchema.parse(request.body);
+
+    const service = await prisma.clinicService.update({
+      where: { id },
+      data: {
+        name: body.name,
+        description: body.description,
+        durationMinutes: body.durationMinutes,
+        price: body.price,
+        eligibleDoctors: body.eligibleDoctorIds
+          ? {
+              deleteMany: {},
+              create: body.eligibleDoctorIds.map((doctorId) => ({ doctorId })),
+            }
+          : undefined,
+      },
+      include: { eligibleDoctors: true },
+    });
+
+    response.json({ ok: true, data: service });
+  })
+);
+
+router.delete(
+  "/clinic/services/:id",
+  asyncHandler(async (request, response) => {
+    const prisma = prismaOr503(response);
+    if (!prisma) return;
+
+    const { id } = idParamSchema.parse(request.params);
+    await prisma.clinicService.delete({ where: { id } });
+    response.json({ ok: true });
+  })
+);
+
 router.post(
   "/clinic/locations",
   asyncHandler(async (request, response) => {
@@ -976,6 +1127,31 @@ router.post(
     const body = locationSchema.parse(request.body);
     const location = await prisma.workplaceLocation.create({ data: body });
     response.status(201).json({ ok: true, data: location });
+  })
+);
+
+router.patch(
+  "/clinic/locations/:id",
+  asyncHandler(async (request, response) => {
+    const prisma = prismaOr503(response);
+    if (!prisma) return;
+
+    const { id } = idParamSchema.parse(request.params);
+    const body = locationUpdateSchema.parse(request.body);
+    const location = await prisma.workplaceLocation.update({ where: { id }, data: body });
+    response.json({ ok: true, data: location });
+  })
+);
+
+router.delete(
+  "/clinic/locations/:id",
+  asyncHandler(async (request, response) => {
+    const prisma = prismaOr503(response);
+    if (!prisma) return;
+
+    const { id } = idParamSchema.parse(request.params);
+    await prisma.workplaceLocation.delete({ where: { id } });
+    response.json({ ok: true });
   })
 );
 
@@ -1013,6 +1189,41 @@ router.post(
   })
 );
 
+router.patch(
+  "/clinic/doctors/:id",
+  asyncHandler(async (request, response) => {
+    const prisma = prismaOr503(response);
+    if (!prisma) return;
+
+    const { id } = idParamSchema.parse(request.params);
+    const body = doctorProfileUpdateSchema.parse(request.body);
+    const doctor = await prisma.doctorProfile.update({ where: { id }, data: body });
+    response.json({ ok: true, data: doctor });
+  })
+);
+
+router.delete(
+  "/clinic/doctors/:id",
+  asyncHandler(async (request, response) => {
+    const prisma = prismaOr503(response);
+    if (!prisma) return;
+
+    const { id } = idParamSchema.parse(request.params);
+    const { workplaceId } = contextQuerySchema.pick({ workplaceId: true }).parse(request.query);
+
+    if (workplaceId) {
+      await prisma.doctorWorkplace.updateMany({
+        where: { doctorId: id, workplaceId },
+        data: { status: "ARCHIVED" },
+      });
+    } else {
+      await prisma.doctorWorkplace.updateMany({ where: { doctorId: id }, data: { status: "ARCHIVED" } });
+    }
+
+    response.json({ ok: true });
+  })
+);
+
 router.post(
   "/clinic/staff",
   asyncHandler(async (request, response) => {
@@ -1039,6 +1250,61 @@ router.post(
       include: { memberships: true },
     });
     response.status(201).json({ ok: true, data: staff });
+  })
+);
+
+router.patch(
+  "/clinic/staff/:id",
+  asyncHandler(async (request, response) => {
+    const prisma = prismaOr503(response);
+    if (!prisma) return;
+
+    const { id } = idParamSchema.parse(request.params);
+    const body = staffUpdateSchema.parse(request.body);
+    const staff = await prisma.staffProfile.update({
+      where: { id },
+      data: {
+        fullName: body.fullName,
+        role: body.role,
+        status: body.status,
+        memberships: body.role
+          ? {
+              updateMany: {
+                where: {},
+                data: { role: body.role },
+              },
+            }
+          : undefined,
+      },
+      include: { memberships: true },
+    });
+    response.json({ ok: true, data: staff });
+  })
+);
+
+router.delete(
+  "/clinic/staff/:id",
+  asyncHandler(async (request, response) => {
+    const prisma = prismaOr503(response);
+    if (!prisma) return;
+
+    const { id } = idParamSchema.parse(request.params);
+    const { workplaceId } = contextQuerySchema.pick({ workplaceId: true }).parse(request.query);
+
+    await prisma.staffProfile.update({
+      where: { id },
+      data: {
+        status: "ARCHIVED",
+        memberships: {
+          updateMany: {
+            where: workplaceId ? { workplaceId } : {},
+            data: { status: "ARCHIVED" },
+          },
+        },
+      },
+    });
+
+    response.json({ ok: true });
   })
 );
 

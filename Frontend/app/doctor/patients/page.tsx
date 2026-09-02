@@ -2,12 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, ChevronRight } from "lucide-react";
-import { SectionHeading, Card, Avatar, Pill, EmptyState, Modal, Field } from "@/components/ui";
+import { Plus, Search, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { SectionHeading, Card, Avatar, Pill, EmptyState, Modal, Field, ListSkeleton, SectionSkeleton } from "@/components/ui";
 import { patients, doctors as seedDoctors, getDoctor, patientInWorkContext } from "@/lib/mock-data";
 import { useMode } from "@/lib/mode-context";
 import { Patient } from "@/lib/types";
-import { createBackendPatient, getBackendBootstrap } from "@/lib/api-client";
+import {
+  ApiSyncSkippedError,
+  createBackendPatient,
+  deleteBackendPatient,
+  getBackendBootstrap,
+  updateBackendPatient,
+} from "@/lib/api-client";
 
 const tagTone: Record<string, "brand" | "clay" | "alert" | "sage"> = {
   New: "brand",
@@ -20,9 +26,11 @@ export default function PatientsPage() {
   const { selectedWorkplaceId, workContext } = useMode();
   const [patientRows, setPatientRows] = useState<Patient[]>([]);
   const [doctorRows, setDoctorRows] = useState<typeof seedDoctors>([]);
+  const [isLoadingPatients, setIsLoadingPatients] = useState(true);
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [editingPatientId, setEditingPatientId] = useState<string | null>(null);
   const [syncMessage, setSyncMessage] = useState("");
   const [form, setForm] = useState({
     name: "",
@@ -51,6 +59,9 @@ export default function PatientsPage() {
         setDoctorRows(seedDoctors);
         setForm((prev) => ({ ...prev, doctorId: seedDoctors[0]?.id ?? prev.doctorId }));
         setSyncMessage("Backend unavailable; using local demo patients.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingPatients(false);
       });
 
     return () => {
@@ -73,7 +84,57 @@ export default function PatientsPage() {
   const contextRows = patientRows.filter((p) => patientInWorkContext(p, workContext));
   const allTags = Array.from(new Set(contextRows.flatMap((p) => p.tags ?? [])));
 
-  async function registerPatient() {
+  if (isLoadingPatients) {
+    return (
+      <div>
+        <SectionSkeleton />
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+          <div className="max-w-sm flex-1">
+            <div className="h-10 animate-pulse rounded-md bg-ink-faint/20" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-7 w-14 animate-pulse rounded-md bg-ink-faint/20" />
+            <div className="h-7 w-20 animate-pulse rounded-md bg-ink-faint/20" />
+          </div>
+        </div>
+        <ListSkeleton rows={7} />
+      </div>
+    );
+  }
+
+  function resetForm() {
+    setEditingPatientId(null);
+    setForm({
+      name: "",
+      age: "",
+      gender: "Male",
+      phone: "",
+      bloodGroup: "O+",
+      condition: "",
+      doctorId: doctorRows[0]?.id ?? "",
+    });
+  }
+
+  function openRegisterForm() {
+    resetForm();
+    setShowForm(true);
+  }
+
+  function openEditForm(patient: Patient) {
+    setEditingPatientId(patient.id);
+    setForm({
+      name: patient.name,
+      age: String(patient.age),
+      gender: patient.gender,
+      phone: patient.phone === "Not added" ? "" : patient.phone,
+      bloodGroup: patient.bloodGroup,
+      condition: patient.conditions[0] ?? "",
+      doctorId: patient.primaryDoctorId,
+    });
+    setShowForm(true);
+  }
+
+  async function savePatient() {
     if (!form.name.trim()) return;
     const initials = form.name
       .split(" ")
@@ -81,6 +142,48 @@ export default function PatientsPage() {
       .slice(0, 2)
       .join("")
       .toUpperCase();
+
+    if (editingPatientId) {
+      const existing = patientRows.find((patient) => patient.id === editingPatientId);
+      const updatedPatient: Patient = {
+        ...(existing ?? {
+          id: editingPatientId,
+          mrn: "",
+          lastVisit: "Updated",
+          allergies: [],
+          tags: ["New"],
+        }),
+        name: form.name,
+        age: Number(form.age) || 0,
+        gender: form.gender,
+        phone: form.phone || "Not added",
+        avatarInitials: initials || "PT",
+        primaryDoctorId: form.doctorId,
+        bloodGroup: form.bloodGroup,
+        conditions: form.condition ? [form.condition] : [],
+      };
+
+      try {
+        await updateBackendPatient(editingPatientId, {
+          fullName: form.name,
+          gender: form.gender.toUpperCase() as "MALE" | "FEMALE" | "OTHER",
+          phone: form.phone,
+          bloodGroup: form.bloodGroup,
+          primaryDoctorId: form.doctorId,
+        });
+        const data = await getBackendBootstrap();
+        setPatientRows(data.patients);
+        if (data.doctors.length > 0) setDoctorRows(data.doctors);
+        setSyncMessage("Patient changes synced to backend.");
+      } catch (error) {
+        setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock patient updated locally." : "Backend sync failed; local patient update kept.");
+        setPatientRows((prev) => prev.map((patient) => (patient.id === editingPatientId ? updatedPatient : patient)));
+      }
+      resetForm();
+      setShowForm(false);
+      return;
+    }
+
     const nextPatient: Patient = {
       id: `local-pat-${Date.now()}`,
       mrn: `MRN-${10230 + patientRows.length + 1}`,
@@ -119,16 +222,20 @@ export default function PatientsPage() {
       setSyncMessage("Backend sync failed; local patient registration kept.");
     }
     if (!savedToBackend) setPatientRows((prev) => [nextPatient, ...prev]);
-    setForm({
-      name: "",
-      age: "",
-      gender: "Male",
-      phone: "",
-      bloodGroup: "O+",
-      condition: "",
-      doctorId: doctorRows[0]?.id ?? "",
-    });
+    resetForm();
     setShowForm(false);
+  }
+
+  async function deletePatient(id: string) {
+    if (!window.confirm("Delete this patient record and linked clinical data?")) return;
+
+    try {
+      await deleteBackendPatient(id);
+      setSyncMessage("Patient deleted from backend.");
+    } catch (error) {
+      setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock patient deleted locally." : "Backend delete failed; local patient removed.");
+    }
+    setPatientRows((prev) => prev.filter((patient) => patient.id !== id));
   }
 
   return (
@@ -138,7 +245,7 @@ export default function PatientsPage() {
         title="My Patients"
         description={`Centralized list of your assigned ${workContext} patients, medical history and ongoing treatments.`}
         action={
-          <button onClick={() => setShowForm((value) => !value)} className="btn-primary">
+          <button onClick={openRegisterForm} className="btn-primary">
             <Plus size={14} /> Add Patient
           </button>
         }
@@ -146,15 +253,24 @@ export default function PatientsPage() {
 
       <Modal
         open={showForm}
-        title="Register Patient"
+        title={editingPatientId ? "Edit Patient" : "Register Patient"}
         eyebrow="My Patients"
-        onClose={() => setShowForm(false)}
+        onClose={() => {
+          resetForm();
+          setShowForm(false);
+        }}
         footer={
           <>
-            <button onClick={registerPatient} className="btn-primary">
-              Register Patient
+            <button onClick={savePatient} className="btn-primary">
+              {editingPatientId ? "Save Changes" : "Register Patient"}
             </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary">
+            <button
+              onClick={() => {
+                resetForm();
+                setShowForm(false);
+              }}
+              className="btn-secondary"
+            >
               Cancel
             </button>
           </>
@@ -293,7 +409,29 @@ export default function PatientsPage() {
                   <p className="hidden lg:block text-xs text-ink-muted w-28 text-right shrink-0">
                     Last visit {p.lastVisit}
                   </p>
-                  <ChevronRight size={16} className="text-ink-faint shrink-0" />
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        openEditForm(p);
+                      }}
+                      className="btn-ghost text-xs"
+                    >
+                      <Pencil size={13} /> Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        deletePatient(p.id);
+                      }}
+                      className="btn-ghost text-xs text-alert-500"
+                    >
+                      <Trash2 size={13} /> Delete
+                    </button>
+                    <ChevronRight size={16} className="text-ink-faint" />
+                  </div>
                 </Link>
               );
             })}

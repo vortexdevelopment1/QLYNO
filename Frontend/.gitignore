@@ -1,5 +1,8 @@
 node_modules
 .next
+.next-dev
+.next-dev.lock
+.next-dev-server.lock
 out
 .DS_Store
 *.local

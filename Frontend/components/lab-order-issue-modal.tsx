@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
-import { Modal } from "@/components/ui";
+import { Modal, Skeleton } from "@/components/ui";
 import { CURRENT_DATE_ISO } from "@/lib/app-time";
 import { ApiSyncSkippedError, createBackendOrder, getBackendBootstrap } from "@/lib/api-client";
 import { saveLocalLabOrder } from "@/lib/lab-order-local-store";
@@ -45,6 +45,7 @@ export function LabOrderIssueModal({
   const [priority, setPriority] = useState<"Routine" | "Urgent">("Routine");
   const [source, setSource] = useState<"Internal" | "Partner Lab" | "External / Manual">("Internal");
   const [syncMessage, setSyncMessage] = useState("");
+  const [isLoadingDoctorData, setIsLoadingDoctorData] = useState(true);
 
   const contextPatients = useMemo(
     () => patients.filter((patient) => patientInWorkContext(patient, workContext)),
@@ -60,6 +61,9 @@ export function LabOrderIssueModal({
       })
       .catch(() => {
         if (!cancelled) setBackendDoctorId("doc-1");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingDoctorData(false);
       });
 
     return () => {
@@ -125,7 +129,7 @@ export function LabOrderIssueModal({
       onClose={onClose}
       footer={
         <>
-          <button onClick={placeOrder} disabled={!testName.trim()} className="btn-primary disabled:cursor-not-allowed disabled:opacity-50">
+          <button onClick={placeOrder} disabled={isLoadingDoctorData || !testName.trim()} className="btn-primary disabled:cursor-not-allowed disabled:opacity-50">
             <Plus size={14} /> Place Order
           </button>
           <button onClick={onClose} className="btn-secondary">
@@ -135,6 +139,14 @@ export function LabOrderIssueModal({
         </>
       }
     >
+      {isLoadingDoctorData ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="text-[11px] text-ink-muted block mb-1">Patient</label>
@@ -181,6 +193,7 @@ export function LabOrderIssueModal({
           </select>
         </div>
       </div>
+      )}
     </Modal>
   );
 }

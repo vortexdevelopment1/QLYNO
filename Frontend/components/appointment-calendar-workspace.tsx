@@ -15,7 +15,7 @@ import {
   UserRound,
   Video,
 } from "lucide-react";
-import { Avatar, Field, Modal, TimePicker } from "@/components/ui";
+import { Avatar, Field, Modal, Skeleton, TimePicker } from "@/components/ui";
 import {
   appointments as seedAppointments,
   clinic,
@@ -31,7 +31,9 @@ import { Appointment, AppointmentType, ClinicLocation, Doctor, Patient } from "@
 import {
   ApiSyncSkippedError,
   createBackendAppointment,
+  deleteBackendAppointment,
   getBackendBootstrap,
+  updateBackendAppointment,
 } from "@/lib/api-client";
 import { ConsultationForm } from "@/components/doctor-consultation-form";
 
@@ -127,10 +129,12 @@ export function AppointmentCalendarWorkspace() {
   const [selectedDate, setSelectedDate] = useState(CURRENT_DATE_ISO);
   const [viewMode, setViewMode] = useState<CalendarViewMode>("week");
   const [showForm, setShowForm] = useState(false);
+  const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modernTheme, setModernTheme] = useState(true);
   const [showCancelled, setShowCancelled] = useState(true);
   const [selectedConsultation, setSelectedConsultation] = useState<Appointment | null>(null);
+  const [isLoadingCalendar, setIsLoadingCalendar] = useState(true);
   const [syncMessage, setSyncMessage] = useState("");
   const [form, setForm] = useState({
     patientId: "",
@@ -163,6 +167,9 @@ export function AppointmentCalendarWorkspace() {
         setAppointmentLocations(clinic.locations);
         setAppointments(seedAppointments);
         setSyncMessage("Backend unavailable; using local calendar data.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingCalendar(false);
       });
 
     return () => {
@@ -216,7 +223,23 @@ export function AppointmentCalendarWorkspace() {
     }));
   }, [appointmentDoctors, contextPatients, contextLocations]);
 
+  function resetAppointmentForm() {
+    setEditingAppointmentId(null);
+    setForm((prev) => ({
+      ...prev,
+      patientId: contextPatients[0]?.id ?? prev.patientId,
+      doctorId: appointmentDoctors[0]?.id ?? prev.doctorId,
+      locationId: contextLocations[0]?.id ?? prev.locationId,
+      date: selectedDate,
+      time: "09:00 AM",
+      durationMins: "20",
+      type: "In-Person",
+      reason: "",
+    }));
+  }
+
   function openAppointmentForm(date = selectedDate, time = "09:00 AM") {
+    setEditingAppointmentId(null);
     setSelectedDate(date);
     setForm((prev) => ({
       ...prev,
@@ -226,6 +249,23 @@ export function AppointmentCalendarWorkspace() {
       doctorId: prev.doctorId || appointmentDoctors[0]?.id || "",
       locationId: prev.locationId || contextLocations[0]?.id || "",
     }));
+    setShowForm(true);
+  }
+
+  function openEditAppointment(appointment: Appointment) {
+    setEditingAppointmentId(appointment.id);
+    setSelectedConsultation(null);
+    setSelectedDate(appointment.date);
+    setForm({
+      patientId: appointment.patientId,
+      doctorId: appointment.doctorId,
+      locationId: appointment.locationId ?? contextLocations[0]?.id ?? "",
+      date: appointment.date,
+      time: appointment.time,
+      durationMins: String(appointment.durationMins),
+      type: appointment.type,
+      reason: appointment.reason,
+    });
     setShowForm(true);
   }
 
@@ -243,10 +283,10 @@ export function AppointmentCalendarWorkspace() {
     setSettingsOpen(false);
   }
 
-  async function createAppointment() {
+  async function saveAppointment() {
     if (!canScheduleAppointment || !form.reason.trim()) return;
     const nextAppointment: Appointment = {
-      id: `local-apt-${Date.now()}`,
+      id: editingAppointmentId ?? `local-apt-${Date.now()}`,
       patientId: form.patientId,
       doctorId: form.doctorId,
       locationId: form.locationId,
@@ -258,6 +298,32 @@ export function AppointmentCalendarWorkspace() {
       status: "Scheduled",
       reason: form.reason.trim(),
     };
+
+    if (editingAppointmentId) {
+      const existing = appointments.find((appointment) => appointment.id === editingAppointmentId);
+      const localUpdate = { ...nextAppointment, status: existing?.status ?? "Scheduled" };
+      try {
+        const savedAppointment = await updateBackendAppointment(editingAppointmentId, {
+          ...nextAppointment,
+          workplaceId: backendWorkplaceId ?? selectedWorkplaceId,
+        });
+        setAppointments((prev) =>
+          prev.map((appointment) =>
+            appointment.id === editingAppointmentId
+              ? { ...savedAppointment, status: existing?.status ?? savedAppointment.status }
+              : appointment
+          )
+        );
+        setSyncMessage("Appointment changes synced to backend.");
+      } catch (error) {
+        setAppointments((prev) => prev.map((appointment) => (appointment.id === editingAppointmentId ? localUpdate : appointment)));
+        setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock appointment updated locally." : "Backend sync failed; local appointment update kept.");
+      }
+      setSelectedDate(form.date);
+      resetAppointmentForm();
+      setShowForm(false);
+      return;
+    }
 
     try {
       const savedAppointment = await createBackendAppointment({
@@ -272,11 +338,88 @@ export function AppointmentCalendarWorkspace() {
     }
 
     setSelectedDate(form.date);
-    setForm((prev) => ({ ...prev, reason: "" }));
+    resetAppointmentForm();
     setShowForm(false);
   }
 
+  async function deleteAppointment(appointment: Appointment) {
+    if (!window.confirm("Delete this appointment from the schedule?")) return;
+
+    try {
+      await deleteBackendAppointment(appointment.id);
+      setSyncMessage("Appointment deleted from backend.");
+    } catch (error) {
+      setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock appointment deleted locally." : "Backend delete failed; local appointment removed.");
+    }
+    setAppointments((prev) => prev.filter((item) => item.id !== appointment.id));
+    setSelectedConsultation(null);
+  }
+
   const slots = Array.from({ length: 41 }, (_, index) => 8 * 60 + index * 15);
+
+  if (isLoadingCalendar) {
+    return (
+      <div className={clsx("min-h-[calc(100vh-9rem)] overflow-hidden rounded-md border border-line bg-white shadow-card", modernTheme && "shadow-lift")}>
+        <div className="flex min-h-[calc(100vh-9rem)]">
+          <aside className="hidden w-[268px] shrink-0 border-r border-line bg-[#f4f5f8] lg:block">
+            <div className="border-b border-line bg-white px-4 py-4">
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="border-b border-line px-5 py-4">
+              <Skeleton className="h-5 w-36" />
+            </div>
+            <div className="border-b border-line px-5 py-4">
+              <Skeleton className="mb-4 h-3 w-24" />
+              {Array.from({ length: 6 }).map((_, index) => (
+                <Skeleton key={index} className="mb-3 h-5 w-full" />
+              ))}
+            </div>
+          </aside>
+          <section className="min-w-0 flex-1">
+            <div className="flex flex-col gap-4 border-b border-line bg-paper/70 px-5 py-4 xl:flex-row xl:items-start xl:justify-between">
+              <div>
+                <Skeleton className="h-8 w-40" />
+                <Skeleton className="mt-2 h-4 w-56" />
+              </div>
+              <div className="flex flex-wrap justify-end gap-2">
+                <Skeleton className="h-10 w-72" />
+                <Skeleton className="h-10 w-20" />
+                <Skeleton className="h-10 w-36" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 p-5 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="rounded-md border border-line bg-white p-4">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="mt-3 h-7 w-12" />
+                </div>
+              ))}
+            </div>
+            <div className="overflow-x-auto px-5 pb-5">
+              <div className="min-w-[920px] rounded-md border border-line">
+                <div className="grid grid-cols-[64px_repeat(6,minmax(130px,1fr))] border-b border-line">
+                  {Array.from({ length: 7 }).map((_, index) => (
+                    <div key={index} className="border-r border-line p-3 last:border-r-0">
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  ))}
+                </div>
+                {Array.from({ length: 10 }).map((_, rowIndex) => (
+                  <div key={rowIndex} className="grid grid-cols-[64px_repeat(6,minmax(130px,1fr))] border-b border-line last:border-b-0">
+                    {Array.from({ length: 7 }).map((_, columnIndex) => (
+                      <div key={columnIndex} className="min-h-16 border-r border-line p-2 last:border-r-0">
+                        {columnIndex > 0 && rowIndex % 3 === columnIndex % 3 && <Skeleton className="h-10 w-full" />}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -648,20 +791,30 @@ export function AppointmentCalendarWorkspace() {
 
       <Modal
         open={showForm}
-        title="Schedule Appointment"
+        title={editingAppointmentId ? "Edit Appointment" : "Schedule Appointment"}
         eyebrow="Appointment"
-        onClose={() => setShowForm(false)}
+        onClose={() => {
+          resetAppointmentForm();
+          setShowForm(false);
+        }}
         footer={
           <>
             <button
               type="button"
-              onClick={createAppointment}
+              onClick={saveAppointment}
               disabled={!canScheduleAppointment || !form.reason.trim()}
               className="btn-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Schedule Appointment
+              {editingAppointmentId ? "Save Changes" : "Schedule Appointment"}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">
+            <button
+              type="button"
+              onClick={() => {
+                resetAppointmentForm();
+                setShowForm(false);
+              }}
+              className="btn-secondary"
+            >
               Cancel
             </button>
           </>
@@ -763,6 +916,18 @@ export function AppointmentCalendarWorkspace() {
         eyebrow={selectedConsultation ? `${selectedConsultation.date} - ${selectedConsultation.time}` : undefined}
         onClose={() => setSelectedConsultation(null)}
         size="xl"
+        footer={
+          selectedConsultation && (
+            <>
+              <button type="button" onClick={() => openEditAppointment(selectedConsultation)} className="btn-secondary">
+                Edit Appointment
+              </button>
+              <button type="button" onClick={() => deleteAppointment(selectedConsultation)} className="btn-secondary text-alert-500">
+                Delete Appointment
+              </button>
+            </>
+          )
+        }
       >
         {selectedConsultation && (
           <ConsultationForm

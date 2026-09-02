@@ -6,7 +6,7 @@ import { AlertTriangle, Phone, Droplet, Stethoscope, FilePlus2, FlaskConical, Ca
 import { ConsultationForm } from "@/components/doctor-consultation-form";
 import { LabOrderIssueModal } from "@/components/lab-order-issue-modal";
 import { PrescriptionIssueModal } from "@/components/prescription-issue-modal";
-import { Card, SectionHeading, Avatar, Pill, OrderStatusBadge, EmptyState, Modal } from "@/components/ui";
+import { Card, SectionHeading, Avatar, Pill, OrderStatusBadge, EmptyState, Modal, Skeleton } from "@/components/ui";
 import {
   appointments as seedAppointments,
   consultationNotes,
@@ -99,9 +99,66 @@ export default function PatientDetail({ params }: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <Card>
-        <p className="text-sm text-ink-muted">Loading patient record...</p>
-      </Card>
+      <div>
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-4">
+            <Skeleton className="h-14 w-14 rounded-full" />
+            <div className="min-w-0 flex-1">
+              <Skeleton className="h-8 w-64 max-w-full" />
+              <Skeleton className="mt-3 h-4 w-96 max-w-full" />
+              <Skeleton className="mt-2 h-3 w-72 max-w-full" />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-10 w-40" />
+            <Skeleton className="h-10 w-28" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+        <div className="vitals-strip mb-6">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="vitals-cell">
+              <Skeleton className="h-3 w-24 bg-white/15" />
+              <Skeleton className="mt-3 h-8 w-20 bg-white/20" />
+            </div>
+          ))}
+        </div>
+        <Card className="mb-6">
+          <Skeleton className="h-5 w-36" />
+          <div className="mt-4 space-y-3">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="grid grid-cols-[88px_1fr] gap-3 rounded-md border border-line bg-paper px-3 py-2">
+                <Skeleton className="h-3 w-16" />
+                <div>
+                  <Skeleton className="h-4 w-56 max-w-full" />
+                  <Skeleton className="mt-2 h-3 w-32" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className="space-y-6 xl:col-span-2">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Card key={index}>
+                <Skeleton className="mb-4 h-5 w-44" />
+                <Skeleton className="mb-3 h-4 w-full" />
+                <Skeleton className="mb-3 h-4 w-5/6" />
+                <Skeleton className="h-4 w-2/3" />
+              </Card>
+            ))}
+          </div>
+          <div className="space-y-6">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Card key={index}>
+                <Skeleton className="mb-4 h-5 w-36" />
+                <Skeleton className="mb-3 h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
     );
   }
 

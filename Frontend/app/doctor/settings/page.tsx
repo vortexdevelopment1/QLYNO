@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Building2, Copy, Hospital, MonitorSmartphone, Plus, Trash2 } from "lucide-react";
 import { WorkplaceBadge } from "@/components/doctor-workflow";
-import { SectionHeading, Card, Avatar, Field, Pill, TimePicker } from "@/components/ui";
+import { SectionHeading, Card, Avatar, Field, Pill, TimePicker, SectionSkeleton, Skeleton } from "@/components/ui";
 import { getBackendState, saveBackendState } from "@/lib/api-client";
 import { currentDoctor } from "@/lib/mock-data";
 import { useDoctorWorkflow } from "@/lib/doctor-workflow-context";
@@ -139,15 +139,17 @@ const defaultSettings: DoctorSettingsState = {
 };
 
 export default function SettingsPage() {
-  const { backendDoctorId, workplaces } = useDoctorWorkflow();
+  const { backendDoctorId, workplaces, isLoadingWorkflow } = useDoctorWorkflow();
   const [tab, setTab] = useState<Tab>("Profile");
   const [settings, setSettings] = useState<DoctorSettingsState>(defaultSettings);
   const [saved, setSaved] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const stateEntityId = backendDoctorId ?? currentDoctor.id;
 
   useEffect(() => {
     let cancelled = false;
+    setIsLoadingSettings(true);
 
     getBackendState<Partial<DoctorSettingsState>>("doctor-settings", stateEntityId)
       .then((state) => {
@@ -160,12 +162,48 @@ export default function SettingsPage() {
           notifications: { ...prev.notifications, ...state.notifications },
         }));
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setIsLoadingSettings(false);
+      });
 
     return () => {
       cancelled = true;
     };
   }, [stateEntityId]);
+
+  if (isLoadingWorkflow || isLoadingSettings) {
+    return (
+      <div>
+        <SectionSkeleton />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+          <Card padded={false} className="h-fit lg:col-span-1">
+            <div className="space-y-2 p-1.5">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Skeleton key={index} className="h-10 w-full" />
+              ))}
+            </div>
+          </Card>
+          <Card className="lg:col-span-3">
+            <div className="mb-6 flex items-center gap-4">
+              <Skeleton className="h-16 w-16 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-4 w-44" />
+                <Skeleton className="mt-2 h-3 w-32" />
+              </div>
+              <Skeleton className="h-7 w-20" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <Skeleton key={index} className="h-10 w-full" />
+              ))}
+            </div>
+            <Skeleton className="mt-5 h-24 w-full" />
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   function updateProfile<K extends keyof DoctorSettingsState["profile"]>(
     field: K,

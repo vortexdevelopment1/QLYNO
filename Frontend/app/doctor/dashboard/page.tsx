@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Video, MapPin, Clock, CalendarCheck2, PlayCircle } from "lucide-react";
 import { ActiveShiftBanner, ShiftCard } from "@/components/doctor-workflow";
-import { Card, SectionHeading, StatusBadge, SeverityBadge, Avatar, Pill } from "@/components/ui";
+import { Card, SectionHeading, StatusBadge, SeverityBadge, Avatar, Pill, SectionSkeleton, Skeleton } from "@/components/ui";
 import {
   appointments,
   followUps,
@@ -23,7 +23,7 @@ const TODAY = CURRENT_DATE_ISO;
 
 export default function DoctorDashboard() {
   const { workContext } = useMode();
-  const { activeShift, clinicQueue, completeShift, doctorTasks, getWorkplace, hospitalWorklist, shifts, startShift } =
+  const { activeShift, clinicQueue, completeShift, doctorTasks, getWorkplace, hospitalWorklist, isLoadingWorkflow, shifts, startShift } =
     useDoctorWorkflow();
   const todayShifts = shifts
     .filter((shift) => shift.date === TODAY)
@@ -42,6 +42,70 @@ export default function DoctorDashboard() {
   const visibleAlerts = clinicalAlerts.filter((a) => matchesWorkContext(a, workContext));
   const openTasks = tasks.filter((t) => matchesWorkContext(t, workContext) && t.status !== "Done");
   const activePatients = patients.filter((p) => patientInWorkContext(p, workContext));
+
+  if (isLoadingWorkflow) {
+    return (
+      <div className="space-y-6">
+        <SectionSkeleton action={false} />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_360px]">
+          <Card className="border-brand-100 bg-brand-50/60">
+            <Skeleton className="mb-3 h-3 w-28" />
+            <Skeleton className="h-7 w-72 max-w-full" />
+            <Skeleton className="mt-3 h-4 w-40" />
+          </Card>
+          <Card>
+            <Skeleton className="mb-4 h-5 w-24" />
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton key={index} className="h-14 w-full" />
+              ))}
+            </div>
+          </Card>
+        </div>
+        <div className="vitals-strip">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="vitals-cell">
+              <Skeleton className="h-3 w-28 bg-white/15" />
+              <Skeleton className="mt-3 h-8 w-16 bg-white/20" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className="space-y-6 xl:col-span-2">
+            {Array.from({ length: 2 }).map((_, index) => (
+              <Card key={index} padded={false}>
+                <div className="px-5 py-4">
+                  <Skeleton className="h-6 w-48" />
+                </div>
+                <div className="divide-y divide-line">
+                  {Array.from({ length: 4 }).map((_, rowIndex) => (
+                    <div key={rowIndex} className="flex items-center gap-3 px-5 py-4">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="mt-2 h-3 w-56" />
+                      </div>
+                      <Skeleton className="h-7 w-20" />
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ))}
+          </div>
+          <div className="space-y-6">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Card key={index}>
+                <Skeleton className="mb-4 h-5 w-36" />
+                <Skeleton className="mb-3 h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

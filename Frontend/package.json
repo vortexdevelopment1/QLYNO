@@ -6,7 +6,7 @@
     "dev": "node scripts/dev.mjs",
     "dev:clean": "node scripts/dev.mjs",
     "dev:reuse": "node scripts/dev.mjs --reuse",
-    "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
+    "clean": "node -e \"const fs=require('fs');['.next','.next-dev','.next-dev.lock','.next-dev-server.lock'].forEach((p)=>fs.rmSync(p,{recursive:true,force:true}))\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

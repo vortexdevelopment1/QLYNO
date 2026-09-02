@@ -12,7 +12,6 @@ import {
   MessageSquareText,
   FileBarChart2,
   Settings2,
-  Search,
   Zap,
 } from "lucide-react";
 
@@ -54,6 +53,5 @@ export const navItems: NavItem[] = [
   { id: "communication", number: "10", label: "Communication & Notifications", icon: MessageSquareText, href: "/receptionist/communication" },
   { id: "reports", number: "11", label: "Reports", icon: FileBarChart2, href: "/receptionist/reports" },
   { id: "settings", number: "12", label: "Settings", icon: Settings2, href: "/receptionist/settings" },
-  { id: "search", number: "13", label: "Global Search", icon: Search, href: "/receptionist/search" },
-  { id: "quick-actions", number: "14", label: "Quick Actions", icon: Zap, href: "/receptionist/quick-actions" },
+  { id: "quick-actions", number: "13", label: "Quick Actions", icon: Zap, href: "/receptionist/quick-actions" },
 ];

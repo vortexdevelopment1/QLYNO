@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, Download, Plus, Printer, Trash2, Send } from "lucide-react";
-import { SectionHeading, Card, Avatar, Pill, Modal, Field } from "@/components/ui";
+import { SectionHeading, Card, Avatar, Pill, Modal, Field, ListSkeleton, SectionSkeleton } from "@/components/ui";
 import { patients as seedPatients, prescriptions as seedRx, getPatient, matchesWorkContext, patientInWorkContext } from "@/lib/mock-data";
 import { useMode } from "@/lib/mode-context";
 import { Medicine, Patient, Prescription } from "@/lib/types";
@@ -40,6 +40,7 @@ function PrescriptionBuilder() {
   const [advice, setAdvice] = useState("");
   const [signed, setSigned] = useState(false);
   const [sent, setSent] = useState(false);
+  const [isLoadingPrescriptions, setIsLoadingPrescriptions] = useState(true);
   const [syncMessage, setSyncMessage] = useState("");
   const contextPatients = useMemo(
     () => patients.filter((patient) => patientInWorkContext(patient, workContext)),
@@ -73,6 +74,9 @@ function PrescriptionBuilder() {
         setPatients(seedPatients);
         setRxList(seedRx);
         setBackendDoctorId("doc-1");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingPrescriptions(false);
       });
 
     return () => {
@@ -85,6 +89,15 @@ function PrescriptionBuilder() {
       contextPatients.some((patient) => patient.id === current) ? current : contextPatients[0]?.id ?? current
     );
   }, [contextPatients]);
+
+  if (isLoadingPrescriptions) {
+    return (
+      <div>
+        <SectionSkeleton />
+        <ListSkeleton rows={6} />
+      </div>
+    );
+  }
 
   function updateMed(id: string, field: keyof Medicine, value: string) {
     setMedicines((prev) => prev.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
@@ -316,7 +329,7 @@ function PrescriptionBuilder() {
 
 export default function PrescriptionsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<><SectionSkeleton /><ListSkeleton rows={6} /></>}>
       <PrescriptionBuilder />
     </Suspense>
   );

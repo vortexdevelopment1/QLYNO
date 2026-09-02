@@ -4,7 +4,6 @@ import * as React from "react";
 import { ArrowRight, TicketCheck } from "lucide-react";
 import { Badge, Button, Card, Field, Modal, Mono, SectionHeader, Select } from "./ui";
 import { useReceptionistData } from "./data-context";
-import { doctors } from "./mock-data";
 
 const statusTone: Record<string, "pine" | "amber" | "slate"> = {
   Waiting: "amber",
@@ -13,7 +12,7 @@ const statusTone: Record<string, "pine" | "amber" | "slate"> = {
 };
 
 export function CheckIn() {
-  const { patients, queue, checkIn, advanceQueueStatus } = useReceptionistData();
+  const { doctors, patients, queue, checkIn, advanceQueueStatus } = useReceptionistData();
   const [modalOpen, setModalOpen] = React.useState(false);
   const [form, setForm] = React.useState({
     uhid: patients[0]?.uhid ?? "",
@@ -21,12 +20,21 @@ export function CheckIn() {
   });
   const [issued, setIssued] = React.useState<string | null>(null);
 
+  React.useEffect(() => {
+    setForm((current) => ({
+      ...current,
+      uhid: current.uhid || patients[0]?.uhid || "",
+      doctor: current.doctor || doctors[0]?.name || "",
+    }));
+  }, [doctors, patients]);
+
   function handleCheckIn(event: React.FormEvent) {
     event.preventDefault();
     const patient = patients.find((item) => item.uhid === form.uhid);
     if (!patient) return;
 
-    const doctor = doctors.find((item) => item.name === form.doctor)!;
+    const doctor = doctors.find((item) => item.name === form.doctor);
+    if (!doctor) return;
     const entry = checkIn({
       patient: patient.name,
       doctor: doctor.name,

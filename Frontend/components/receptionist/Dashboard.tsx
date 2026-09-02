@@ -81,7 +81,7 @@ export function Dashboard() {
 
         <Card>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="rp-h2">Today's appointments</h2>
+            <h2 className="rp-h2">Today&apos;s appointments</h2>
             <Badge tone="pine">{todaysAppointments.length} scheduled</Badge>
           </div>
           <ul className="rp-list">

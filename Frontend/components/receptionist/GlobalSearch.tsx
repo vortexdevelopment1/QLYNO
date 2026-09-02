@@ -5,9 +5,14 @@ import { Search, User, CalendarCheck, BedDouble, BadgeCheck } from "lucide-react
 import { Card, SectionHeader, Input, Badge, Mono, EmptyState } from "./ui";
 import { useReceptionistData } from "./data-context";
 
-export function GlobalSearch() {
+export function GlobalSearch({
+  query,
+  onQueryChange,
+}: {
+  query: string;
+  onQueryChange: (query: string) => void;
+}) {
   const { patients, appointments, admissions, visitors } = useReceptionistData();
-  const [query, setQuery] = React.useState("");
 
   const q = query.trim().toLowerCase();
   const patientResults = q ? patients.filter((p) => p.name.toLowerCase().includes(q) || p.uhid.toLowerCase().includes(q)) : [];
@@ -32,7 +37,7 @@ export function GlobalSearch() {
             className="!pl-9 !text-base !py-3"
             placeholder="Search anything — name, UHID, appointment ID, token…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => onQueryChange(e.target.value)}
             autoFocus
           />
         </div>

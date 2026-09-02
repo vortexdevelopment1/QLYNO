@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, FileWarning, Siren, ListTodo, CheckCircle2 } from "lucide-react";
-import { SectionHeading, Card, SeverityBadge, EmptyState } from "@/components/ui";
+import { SectionHeading, Card, SeverityBadge, EmptyState, ListSkeleton, SectionSkeleton } from "@/components/ui";
 import { clinicalAlerts as seedAlerts, getPatient, matchesWorkContext } from "@/lib/mock-data";
 import { useMode } from "@/lib/mode-context";
 import { ClinicalAlert } from "@/lib/types";
@@ -20,6 +20,7 @@ export default function AlertsPage() {
   const { workContext } = useMode();
   const [alerts, setAlerts] = useState<ClinicalAlert[]>([]);
   const [showAcknowledged, setShowAcknowledged] = useState(false);
+  const [isLoadingAlerts, setIsLoadingAlerts] = useState(true);
   const [syncMessage, setSyncMessage] = useState("");
 
   useEffect(() => {
@@ -31,12 +32,25 @@ export default function AlertsPage() {
       })
       .catch(() => {
         if (!cancelled) setAlerts(seedAlerts);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingAlerts(false);
       });
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  if (isLoadingAlerts) {
+    return (
+      <div>
+        <SectionSkeleton />
+        <div className="mb-4 h-5 w-64 animate-pulse rounded-md bg-ink-faint/20" />
+        <ListSkeleton rows={5} avatar={false} />
+      </div>
+    );
+  }
 
   async function acknowledge(id: string) {
     setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, acknowledged: true } : a)));

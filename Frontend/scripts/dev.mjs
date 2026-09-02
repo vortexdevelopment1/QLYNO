@@ -1,11 +1,12 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
-import { createServer } from "node:net";
+import { connect, createServer } from "node:net";
 
 const projectRoot = process.cwd();
-const nextDir = join(projectRoot, ".next");
-const lockFile = join(projectRoot, ".next-dev.lock");
+const nextDir = join(projectRoot, ".next-dev");
+const legacyLockFile = join(projectRoot, ".next-dev.lock");
+const lockFile = join(projectRoot, ".next-dev-server.lock");
 const port = Number(process.env.PORT ?? 3000);
 const reuseBuildArtifacts = process.argv.includes("--reuse");
 
@@ -26,10 +27,26 @@ function readLockPid() {
   return Number.isInteger(pid) ? pid : null;
 }
 
+function canConnectToPort() {
+  return new Promise((resolve) => {
+    const socket = connect({ host: "127.0.0.1", port });
+    socket.once("connect", () => {
+      socket.end();
+      resolve(true);
+    });
+    socket.once("error", () => resolve(false));
+  });
+}
+
 const existingPid = readLockPid();
 if (existingPid && isProcessRunning(existingPid)) {
-  console.error(`Another Next dev server is already running for this project (PID ${existingPid}).`);
-  console.error("Stop that terminal first, then run npm run dev again.");
+  if (await canConnectToPort()) {
+    console.log(`Next dev server is already running at http://localhost:${port} (PID ${existingPid}).`);
+    console.log("Use the existing server, or stop it with Ctrl+C in its terminal before starting a fresh one.");
+    process.exit(0);
+  }
+  console.error(`A previous dev server process is still running but port ${port} is not ready (PID ${existingPid}).`);
+  console.error("Stop that process, then run npm run dev again.");
   process.exit(1);
 }
 
@@ -50,9 +67,10 @@ async function ensurePortAvailable() {
 
 await ensurePortAvailable();
 
+rmSync(legacyLockFile, { force: true });
 rmSync(lockFile, { force: true });
 if (!reuseBuildArtifacts) {
-  console.log("Clearing .next before dev start to prevent stale chunk 404s...");
+  console.log("Clearing .next-dev before dev start to prevent stale chunk 404s...");
   rmSync(nextDir, { recursive: true, force: true });
 }
 writeFileSync(lockFile, String(process.pid));
@@ -69,10 +87,12 @@ const child = spawn(process.execPath, [nextCli, "dev", "--port", String(port)], 
 
 process.on("exit", () => {
   rmSync(lockFile, { force: true });
+  rmSync(legacyLockFile, { force: true });
 });
 
 function cleanupAndExit(code = 0) {
   rmSync(lockFile, { force: true });
+  rmSync(legacyLockFile, { force: true });
   process.exit(code);
 }
 
@@ -90,6 +110,7 @@ child.on("exit", (code) => {
 
 child.on("error", (error) => {
   rmSync(lockFile, { force: true });
+  rmSync(legacyLockFile, { force: true });
   console.error(error);
   process.exit(1);
 });

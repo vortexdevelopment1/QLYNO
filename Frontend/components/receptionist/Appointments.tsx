@@ -5,7 +5,6 @@ import { CalendarPlus, Check, RotateCcw, X } from "lucide-react";
 import { Badge, Button, Card, Field, Input, Modal, Mono, SectionHeader, Select, Table } from "./ui";
 import { TimePicker } from "@/components/ui";
 import { useReceptionistData } from "./data-context";
-import { doctors } from "./mock-data";
 
 const statusTone: Record<string, "pine" | "amber" | "coral" | "slate"> = {
   Confirmed: "pine",
@@ -15,7 +14,7 @@ const statusTone: Record<string, "pine" | "amber" | "coral" | "slate"> = {
 };
 
 export function Appointments() {
-  const { appointments, patients, addAppointment, updateAppointmentStatus } = useReceptionistData();
+  const { appointments, doctors, patients, addAppointment, updateAppointmentStatus } = useReceptionistData();
   const [modalOpen, setModalOpen] = React.useState(false);
   const [form, setForm] = React.useState({
     uhid: patients[0]?.uhid ?? "",
@@ -24,12 +23,21 @@ export function Appointments() {
     time: "10:00 AM",
   });
 
+  React.useEffect(() => {
+    setForm((current) => ({
+      ...current,
+      uhid: current.uhid || patients[0]?.uhid || "",
+      doctor: current.doctor || doctors[0]?.name || "",
+    }));
+  }, [doctors, patients]);
+
   function handleBook(event: React.FormEvent) {
     event.preventDefault();
     const patient = patients.find((item) => item.uhid === form.uhid);
     if (!patient) return;
 
-    const doctor = doctors.find((item) => item.name === form.doctor)!;
+    const doctor = doctors.find((item) => item.name === form.doctor);
+    if (!doctor) return;
     addAppointment({
       patient: patient.name,
       uhid: patient.uhid,

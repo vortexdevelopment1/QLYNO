@@ -1,23 +1,33 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, Bell, Building2, Hospital, Menu } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Bell, Building2, FileWarning, Hospital, ListTodo, Menu, Siren } from "lucide-react";
 import GlobalSearch from "./GlobalSearch";
 import QuickActions from "./QuickActions";
 import { allNavItems } from "./nav-config";
-import { clinicalAlerts, matchesWorkContext } from "@/lib/mock-data";
+import { clinicalAlerts, getPatient, matchesWorkContext } from "@/lib/mock-data";
 import { useMode } from "@/lib/mode-context";
 import { useDoctorWorkflow } from "@/lib/doctor-workflow-context";
+import { ClinicalAlert } from "@/lib/types";
+
+const categoryIcon: Record<ClinicalAlert["category"], typeof AlertTriangle> = {
+  Allergy: AlertTriangle,
+  "Abnormal Report": FileWarning,
+  Emergency: Siren,
+  Task: ListTodo,
+};
 
 export default function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { selectedWorkplaceId, workContext } = useMode();
   const { getWorkplace } = useDoctorWorkflow();
   const current = allNavItems.find((n) => pathname?.startsWith(n.href));
   const selectedWorkplace = getWorkplace(selectedWorkplaceId);
-  const unacknowledged = clinicalAlerts.filter((a) => matchesWorkContext(a, workContext) && !a.acknowledged).length;
+  const unacknowledgedAlerts = clinicalAlerts.filter((a) => matchesWorkContext(a, workContext) && !a.acknowledged);
+  const unacknowledged = unacknowledgedAlerts.length;
   const showBackButton = Boolean(
     pathname &&
       pathname !== "/" &&
@@ -32,6 +42,11 @@ export default function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
     }
 
     router.push(pathname?.startsWith("/clinic") ? "/clinic/dashboard" : "/doctor/dashboard");
+  };
+
+  const goToAlerts = () => {
+    setNotificationsOpen(false);
+    router.push("/doctor/alerts");
   };
 
   return (
@@ -66,18 +81,80 @@ export default function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
             ? `${selectedWorkplace.name}${selectedWorkplace.location ? ` - ${selectedWorkplace.location}` : ""}`
             : workContext}
         </span>
-        <Link
-          href="/doctor/alerts"
-          className="relative w-9 h-9 rounded-md border border-line flex items-center justify-center text-ink-muted hover:bg-paper transition-colors"
-          aria-label="Clinical alerts"
-        >
-          <Bell size={16} />
-          {unacknowledged > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-alert-400 text-white text-[10px] font-semibold flex items-center justify-center">
-              {unacknowledged}
-            </span>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setNotificationsOpen((v) => !v)}
+            className="relative w-9 h-9 rounded-md border border-line flex items-center justify-center text-ink-muted hover:bg-paper transition-colors"
+            aria-label="Open notifications"
+            aria-expanded={notificationsOpen}
+          >
+            <Bell size={16} />
+            {unacknowledged > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-alert-400 text-white text-[10px] font-semibold flex items-center justify-center">
+                {unacknowledged}
+              </span>
+            )}
+          </button>
+          {notificationsOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setNotificationsOpen(false)} />
+              <div className="absolute right-0 z-20 mt-1.5 w-80 max-w-[calc(100vw-2rem)] card p-1.5">
+                <div className="flex items-center justify-between px-2.5 pb-1 pt-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-faint">
+                    Notifications
+                  </span>
+                  <span className="text-[11px] font-medium text-ink-muted">
+                    {unacknowledged} open
+                  </span>
+                </div>
+                {unacknowledgedAlerts.length === 0 ? (
+                  <div className="px-2.5 py-4 text-sm text-ink-muted">No new clinical alerts.</div>
+                ) : (
+                  unacknowledgedAlerts.slice(0, 4).map((alert) => {
+                    const Icon = categoryIcon[alert.category];
+                    const patient = alert.patientId ? getPatient(alert.patientId) : undefined;
+                    return (
+                      <button
+                        key={alert.id}
+                        type="button"
+                        onClick={goToAlerts}
+                        className="w-full flex items-start gap-2.5 rounded-md px-2.5 py-2 text-left hover:bg-brand-50 transition-colors"
+                      >
+                        <span
+                          className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
+                            alert.severity === "Critical"
+                              ? "bg-alert-50 text-alert-500"
+                              : alert.severity === "Warning"
+                                ? "bg-clay-50 text-clay-600"
+                                : "bg-brand-50 text-brand-600"
+                          }`}
+                        >
+                          <Icon size={14} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-[13px] font-semibold text-ink">
+                            {patient ? patient.name : alert.category}
+                          </span>
+                          <span className="line-clamp-2 text-xs leading-5 text-ink-soft">{alert.message}</span>
+                          <span className="mt-0.5 block text-[11px] text-ink-faint">{alert.time}</span>
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+                <div className="my-1 border-t border-line" />
+                <button
+                  type="button"
+                  onClick={goToAlerts}
+                  className="w-full rounded-md px-2.5 py-2 text-left text-[13px] font-semibold text-brand-700 hover:bg-brand-50 transition-colors"
+                >
+                  View all clinical alerts
+                </button>
+              </div>
+            </>
           )}
-        </Link>
+        </div>
         <QuickActions />
       </div>
     </header>

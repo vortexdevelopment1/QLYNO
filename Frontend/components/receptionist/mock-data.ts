@@ -1,23 +1,29 @@
-// Mock data for the Receptionist Portal.
-// Replace each of these with real API/service calls when wiring up the backend.
-// Kept in one place so every module reads from — and writes to — the same
-// in-memory "front desk" state for the duration of a session.
+// Seed data for the Receptionist Portal. The data-context hydrates from the
+// backend when available and falls back to these rows for offline demo work.
 
 export type Gender = "Male" | "Female" | "Other";
 
 export interface Patient {
   uhid: string;
+  backendId?: string;
+  primaryDoctorId?: string;
+  workplaceId?: string;
   name: string;
   age: number;
   gender: Gender;
   phone: string;
   department: string;
+  bloodGroup?: string;
   lastVisit: string;
   status: "Active" | "Discharged" | "New";
 }
 
 export interface Appointment {
   id: string;
+  backendId?: string;
+  patientId?: string;
+  doctorId?: string;
+  workplaceId?: string;
   patient: string;
   uhid: string;
   doctor: string;
@@ -29,6 +35,10 @@ export interface Appointment {
 
 export interface QueueEntry {
   token: string;
+  appointmentId?: string;
+  patientId?: string;
+  doctorId?: string;
+  workplaceId?: string;
   patient: string;
   doctor: string;
   department: string;
@@ -57,7 +67,13 @@ export interface Admission {
   status: "Admitted" | "Awaiting Bed" | "Discharged";
 }
 
-export const doctors = [
+export interface ReceptionistDoctor {
+  name: string;
+  department: string;
+  backendId?: string;
+}
+
+export const doctors: ReceptionistDoctor[] = [
   { name: "Dr. Ananya Rao", department: "General Medicine" },
   { name: "Dr. Vikram Shah", department: "Orthopedics" },
   { name: "Dr. Meera Iyer", department: "Pediatrics" },

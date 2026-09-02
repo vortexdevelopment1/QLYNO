@@ -455,17 +455,20 @@ export function DoctorAiAssistant() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-50">
+    <div className="fixed inset-x-3 bottom-3 z-50 flex flex-col items-end gap-3 sm:inset-x-auto sm:bottom-5 sm:right-5">
       {open && (
-        <div className="mb-4 w-[min(calc(100vw-2rem),28rem)] overflow-hidden rounded-card border border-line bg-white shadow-pop">
-          <div className="flex items-start justify-between gap-4 border-b border-line bg-ink px-4 py-3 text-white">
+        <div
+          data-testid="doctor-ai-assistant-panel"
+          className="w-full overflow-hidden rounded-card border border-line bg-white shadow-pop sm:w-[28rem] md:w-[30rem]"
+        >
+          <div className="flex items-start justify-between gap-3 border-b border-line bg-ink px-3 py-3 text-white sm:px-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-white text-brand-700">
-                <BrainCircuit size={20} />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-brand-700">
+                <BrainCircuit size={19} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-100">Qlyno AI</p>
-                <h2 className="font-display text-lg leading-tight">Care Assistant</h2>
+                <h2 className="truncate font-display text-lg leading-tight">Care Assistant</h2>
               </div>
             </div>
             <button
@@ -478,8 +481,8 @@ export function DoctorAiAssistant() {
             </button>
           </div>
 
-          <div className="max-h-[calc(100vh-8rem)] overflow-y-auto p-4">
-            <div className="grid grid-cols-2 gap-2">
+          <div className="max-h-[calc(100dvh-9.5rem)] overflow-y-auto p-3 sm:max-h-[calc(100vh-8.5rem)] sm:p-4">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {aiOperations.map((item) => {
                 const Icon = item.icon;
                 const active = operation === item.id;
@@ -519,10 +522,10 @@ export function DoctorAiAssistant() {
               />
             </label>
 
-            <div className="mt-4 rounded-card border border-line bg-paper/70 p-4">
+            <div className="mt-4 rounded-card border border-line bg-paper/70 p-3 sm:p-4">
               <div className="flex items-start gap-3">
                 <div
-                  className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-md ${
+                  className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
                     operation === "emergency" ? "bg-alert-50 text-alert-500" : "bg-brand-50 text-brand-700"
                   }`}
                 >
@@ -552,7 +555,7 @@ export function DoctorAiAssistant() {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Link href="/discover" className="btn-secondary text-xs">
                 <LifeBuoy size={13} /> Search
               </Link>
@@ -584,12 +587,13 @@ export function DoctorAiAssistant() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-label="Open Qlyno AI assistant"
-        className="group relative flex h-16 w-16 items-center justify-center rounded-full border border-brand-100 bg-ink text-white shadow-pop transition-all hover:-translate-y-0.5 hover:shadow-lift"
+        data-testid="doctor-ai-assistant-trigger"
+        className="group relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-brand-100 bg-ink text-white shadow-pop transition-all hover:-translate-y-0.5 hover:shadow-lift sm:h-16 sm:w-16"
       >
         <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-clay-300 text-[10px] font-bold text-ink">
           AI
         </span>
-        <Bot size={27} className="transition-transform group-hover:scale-105" />
+        <Bot size={25} className="transition-transform group-hover:scale-105 sm:size-[27px]" />
       </button>
     </div>
   );
