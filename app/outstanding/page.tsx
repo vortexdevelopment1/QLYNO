@@ -1,5 +1,6 @@
 "use client";
 
+// Outstanding Balances page with explicit Patient vs Payer (TPA) breakdown
 import { useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { PageHeader } from "@/components/ui/PageHeader";
