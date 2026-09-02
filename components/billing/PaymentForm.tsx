@@ -18,7 +18,7 @@ export function PaymentForm({
 }: {
   invoiceId?: string; onCancel: () => void; onDone?: () => void;
 }) {
-  const { currentOrg, currentUser, invoices, patients, dispatch } = useApp();
+  const { currentOrg, currentUser, invoices, patients, insuranceClaims, dispatch } = useApp();
   const payableInvoices = invoices.filter((i) => i.organizationId === currentOrg.id && i.outstanding > 0 && (i.status === "issued" || i.status === "partially_paid"));
 
   const [invoiceId, setInvoiceId] = useState(fixedInvoiceId ?? payableInvoices[0]?.id ?? "");
@@ -32,6 +32,7 @@ export function PaymentForm({
 
   const invoice = invoices.find((i) => i.id === invoiceId);
   const patient = invoice ? patients.find((p) => p.id === invoice.patientId) : undefined;
+  const claim = invoice ? insuranceClaims.find((c) => c.invoiceId === invoice.id) : undefined;
 
   const amountNumber = Number(amount);
 
@@ -92,12 +93,30 @@ export function PaymentForm({
       )}
 
       {invoice && (
-        <div className="rounded-lg bg-ink-50 p-3 text-sm">
+        <div className="rounded-lg bg-ink-50 p-3 text-sm space-y-1.5">
           <p className="font-medium text-ink-800">{patient?.name} <span className="text-ink-400">· {patient?.uhid}</span></p>
-          <div className="mt-1 flex justify-between text-xs text-ink-500">
+          <div className="flex justify-between text-xs text-ink-500">
             <span>Invoice total: {formatINR(invoice.total)}</span>
             <span>Amount due: <strong className="text-ink-800">{formatINR(invoice.outstanding)}</strong></span>
           </div>
+
+          {claim && (
+            <div className="mt-2 pt-2 border-t border-ink-200 text-xs flex justify-between items-center bg-white p-2 rounded border border-ink-100">
+              <div>
+                <span className="font-semibold text-brand-700">Insurance Claim Active</span>
+                <p className="text-[11px] text-ink-500">
+                  Patient Resp: <strong className="text-red-600">{formatINR(claim.patientResponsibility)}</strong> · Payer Owes: <strong className="text-amber-700">{formatINR(claim.payerOutstanding)}</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAmount(String(claim.patientResponsibility))}
+                className="rounded bg-brand-50 border border-brand-200 px-2 py-1 text-[11px] font-semibold text-brand-700 hover:bg-brand-100"
+              >
+                Auto-fill Patient Portion ({formatINR(claim.patientResponsibility)})
+              </button>
+            </div>
+          )}
         </div>
       )}
 
