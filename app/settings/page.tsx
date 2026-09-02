@@ -15,7 +15,6 @@ const SETTINGS_SECTIONS = [
   { title: "Insurance Settings", description: "Permitted payers, TPAs, and required documents per claim type.", isInsurance: true },
   { title: "Service Configuration", description: "Service catalog, rates and tax percentages." },
 ];
-
 export default function SettingsPage() {
   const { currentUser } = useApp();
   const [payerModalOpen, setPayerModalOpen] = useState(false);
