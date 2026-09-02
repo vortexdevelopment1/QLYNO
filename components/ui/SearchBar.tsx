@@ -1,14 +1,15 @@
 "use client";
 
 export function SearchBar({
-  value, onChange, placeholder = "Search…", ariaLabel = "Search",
+  value, onChange, placeholder = "Search…", ariaLabel = "Search", inputRef
 }: {
-  value: string; onChange: (v: string) => void; placeholder?: string; ariaLabel?: string;
+  value: string; onChange: (v: string) => void; placeholder?: string; ariaLabel?: string; inputRef?: React.RefObject<HTMLInputElement>;
 }) {
   return (
     <div className="relative w-full">
       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" aria-hidden="true">⌕</span>
       <input
+        ref={inputRef}
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}

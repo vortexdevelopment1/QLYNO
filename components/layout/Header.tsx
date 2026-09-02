@@ -139,13 +139,11 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
       return false;
     });
 
-    // 5. Service Catalog matching name, category, service code
+    // 5. Service Catalog matching name, category
     const sc = serviceCatalog.filter(
       (s) =>
         s.organizationId === currentOrg.id &&
-        (s.name.toLowerCase().includes(q) ||
-          s.category.toLowerCase().includes(q) ||
-          (s.code && s.code.toLowerCase().includes(q)))
+        (s.name.toLowerCase().includes(q) || s.category.toLowerCase().includes(q))
     );
 
     const totalCount = pt.length + inv.length + rc.length + cl.length + sc.length;
@@ -341,7 +339,7 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
                   <span className="font-semibold text-ink-900">{s.name}</span>
                   <span className="text-[10px] text-ink-400 ml-2">({s.category})</span>
                 </div>
-                <span className="font-mono text-xs font-semibold text-ink-900">{formatINR(s.unitRate)}</span>
+                <span className="font-mono text-xs font-semibold text-ink-900">{formatINR(s.rate)}</span>
               </button>
             ))}
           </div>
