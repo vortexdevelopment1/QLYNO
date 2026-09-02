@@ -182,6 +182,10 @@ export interface Payer {
   type: PayerType;
   name: string; // "Self Pay" | insurer/corporate name
   contact?: string;
+  active?: boolean;
+  payerCode?: string;
+  tpaContactPerson?: string;
+  tpaEmail?: string;
 }
 
 export type ClaimStatus =
@@ -211,6 +215,13 @@ export interface InsuranceClaim {
   requiredDocuments: string[];
   lastUpdated: string;
   organizationId: string;
+  preAuthNumber?: string;
+  preAuthAmount?: number;
+  verificationDate?: string;
+  verifierNotes?: string;
+  settlementReference?: string;
+  settlementDate?: string;
+  settlementNotes?: string;
 }
 
 // ---------------------------------------------------------------------------

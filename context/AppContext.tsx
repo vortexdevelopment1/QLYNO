@@ -5,7 +5,7 @@ import {
   Organization, StaffUser, Patient, Encounter, ServiceCatalogItem, PendingBillingItem, Payer,
   Invoice, Payment, Receipt, Discount, Refund, InsuranceClaim, AuditLogEntry, NotificationItem,
   ReconciliationRecord, DashboardAlert, BillingScope, InvoiceLineItem, InvoiceStatus, PaymentMethod,
-  DiscountLevel, RefundStatus,
+  DiscountLevel, RefundStatus, ClaimStatus,
 } from "@/types";
 import * as seed from "@/lib/mock-data";
 import { nextId } from "@/lib/utils";
@@ -79,6 +79,14 @@ type Action =
   | { type: "REVERSE_PAYMENT"; paymentId: string; reason: string; user: string }
   | { type: "UPDATE_STAFF_SCOPES"; staffId: string; scopes: BillingScope[] }
   | { type: "ATTACH_CLAIM_DOCUMENT"; claimId: string; documentName: string }
+  | { type: "REMOVE_CLAIM_DOCUMENT"; claimId: string; documentName: string }
+  | { type: "ADD_PAYER"; payer: Payer }
+  | { type: "UPDATE_PAYER"; payerId: string; patch: Partial<Payer> }
+  | { type: "CREATE_INSURANCE_CLAIM"; claim: InsuranceClaim }
+  | { type: "VERIFY_CLAIM"; claimId: string; notes?: string; user: string }
+  | { type: "UPDATE_PREAUTH"; claimId: string; preAuthNumber: string; preAuthAmount: number; notes?: string; user: string }
+  | { type: "RECORD_PAYER_SETTLEMENT"; claimId: string; approvedAmount: number; settledAmount: number; patientResponsibility: number; settlementReference?: string; notes?: string; user: string }
+  | { type: "UPDATE_CLAIM_STATUS"; claimId: string; status: ClaimStatus; user: string }
   | { type: "FINAL_DISCHARGE_SETTLEMENT"; patientId: string; invoiceId: string; user: string };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -455,6 +463,191 @@ function reducer(state: AppState, action: Action): AppState {
             : c
         ),
       };
+    case "REMOVE_CLAIM_DOCUMENT":
+      return {
+        ...state,
+        insuranceClaims: state.insuranceClaims.map((c) =>
+          c.id === action.claimId
+            ? {
+              ...c,
+              documentsAttached: c.documentsAttached.filter((d) => d !== action.documentName),
+              lastUpdated: new Date().toISOString().split("T")[0],
+            }
+            : c
+        ),
+      };
+    case "ADD_PAYER":
+      return {
+        ...state,
+        payers: [...state.payers, action.payer],
+      };
+    case "UPDATE_PAYER":
+      return {
+        ...state,
+        payers: state.payers.map((p) => (p.id === action.payerId ? { ...p, ...action.patch } : p)),
+      };
+    case "CREATE_INSURANCE_CLAIM":
+      return {
+        ...state,
+        insuranceClaims: [action.claim, ...state.insuranceClaims],
+        notifications: [
+          {
+            id: nextId("notif"),
+            event: "insurance_update",
+            patientId: action.claim.patientId,
+            invoiceId: action.claim.invoiceId,
+            message: `Insurance claim initiated for policy ${action.claim.policyNumber}. Claimed amount: ₹${action.claim.claimedAmount.toLocaleString("en-IN")}.`,
+            channel: "whatsapp",
+            status: "sent",
+            timestamp: new Date().toISOString(),
+            organizationId: action.claim.organizationId,
+          },
+          ...state.notifications,
+        ],
+      };
+    case "VERIFY_CLAIM":
+      return {
+        ...state,
+        insuranceClaims: state.insuranceClaims.map((c) =>
+          c.id === action.claimId
+            ? {
+              ...c,
+              status: "verified" as ClaimStatus,
+              verificationDate: new Date().toISOString().split("T")[0],
+              verifierNotes: action.notes || c.verifierNotes,
+              lastUpdated: new Date().toISOString().split("T")[0],
+            }
+            : c
+        ),
+      };
+    case "UPDATE_PREAUTH":
+      return {
+        ...state,
+        insuranceClaims: state.insuranceClaims.map((c) =>
+          c.id === action.claimId
+            ? {
+              ...c,
+              status: "approved" as ClaimStatus,
+              preAuthNumber: action.preAuthNumber,
+              preAuthAmount: action.preAuthAmount,
+              approvedAmount: action.preAuthAmount,
+              lastUpdated: new Date().toISOString().split("T")[0],
+            }
+            : c
+        ),
+      };
+    case "UPDATE_CLAIM_STATUS":
+      return {
+        ...state,
+        insuranceClaims: state.insuranceClaims.map((c) =>
+          c.id === action.claimId ? { ...c, status: action.status, lastUpdated: new Date().toISOString().split("T")[0] } : c
+        ),
+      };
+    case "RECORD_PAYER_SETTLEMENT": {
+      const claim = state.insuranceClaims.find((c) => c.id === action.claimId);
+      if (!claim) return state;
+      const inv = state.invoices.find((i) => i.id === claim.invoiceId);
+
+      const approvedAmount = action.approvedAmount;
+      const settledAmount = action.settledAmount;
+      const patientResponsibility = action.patientResponsibility;
+      const payerOutstanding = Math.max(0, approvedAmount - settledAmount);
+
+      const nextStatus: ClaimStatus =
+        settledAmount >= approvedAmount && approvedAmount > 0
+          ? "settled"
+          : settledAmount > 0
+          ? "partially_settled"
+          : approvedAmount === 0
+          ? "rejected"
+          : "under_review";
+
+      let updatedInvoices = state.invoices;
+      let newPayments = state.payments;
+      let newReceipts = state.receipts;
+
+      if (settledAmount > 0 && inv) {
+        const payId = nextId("pay");
+        const refNo = action.settlementReference || `TPA-NEFT-${Math.floor(10000 + Math.random() * 89999)}`;
+        const nowIso = new Date().toISOString();
+
+        const payment: Payment = {
+          id: payId,
+          invoiceId: inv.id,
+          patientId: claim.patientId,
+          amount: settledAmount,
+          method: "online",
+          referenceNumber: refNo,
+          notes: `TPA/Insurance settlement from ${state.payers.find((p) => p.id === claim.payerId)?.name || "Payer"}`,
+          status: "success",
+          collectedBy: action.user,
+          date: nowIso,
+          organizationId: claim.organizationId,
+        };
+
+        const receipt: Receipt = {
+          id: nextId("rcpt"),
+          receiptNumber: `TPA-RCPT-${Math.floor(1000 + Math.random() * 8999)}`,
+          invoiceId: inv.id,
+          paymentId: payId,
+          patientId: claim.patientId,
+          amount: settledAmount,
+          method: "online",
+          referenceNumber: refNo,
+          date: nowIso,
+          receivedBy: action.user,
+          organizationId: claim.organizationId,
+        };
+
+        newPayments = [payment, ...state.payments];
+        newReceipts = [receipt, ...state.receipts];
+
+        updatedInvoices = state.invoices.map((i) => {
+          if (i.id !== inv.id) return i;
+          const paidTotal = i.paidTotal + settledAmount;
+          const outstanding = Math.max(0, i.total - paidTotal);
+          const status: InvoiceStatus = outstanding === 0 ? "paid" : "partially_paid";
+          return { ...i, paidTotal, outstanding, status };
+        });
+      }
+
+      return {
+        ...state,
+        invoices: updatedInvoices,
+        payments: newPayments,
+        receipts: newReceipts,
+        insuranceClaims: state.insuranceClaims.map((c) =>
+          c.id === action.claimId
+            ? {
+              ...c,
+              status: nextStatus,
+              approvedAmount,
+              settledAmount,
+              patientResponsibility,
+              payerOutstanding,
+              settlementReference: action.settlementReference || c.settlementReference,
+              settlementNotes: action.notes || c.settlementNotes,
+              settlementDate: new Date().toISOString().split("T")[0],
+              lastUpdated: new Date().toISOString().split("T")[0],
+            }
+            : c
+        ),
+        notifications: [
+          {
+            id: nextId("notif"),
+            event: "insurance_update",
+            patientId: claim.patientId,
+            invoiceId: claim.invoiceId,
+            message: `Insurance claim settled. Approved: ₹${approvedAmount.toLocaleString("en-IN")}, Settled: ₹${settledAmount.toLocaleString("en-IN")}. Patient responsibility: ₹${patientResponsibility.toLocaleString("en-IN")}.`,
+            channel: "whatsapp",
+            status: "sent",
+            timestamp: new Date().toISOString(),
+            organizationId: claim.organizationId,
+          },
+          ...state.notifications,
+        ],
+      };
+    }
     case "FINAL_DISCHARGE_SETTLEMENT": {
       const inv = state.invoices.find((i) => i.id === action.invoiceId);
       if (!inv) return state;

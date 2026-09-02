@@ -17,11 +17,12 @@ import { formatINR, formatDate, formatDateTime } from "@/lib/utils";
 import { can } from "@/lib/permissions";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { WorkflowStepper } from "@/components/billing/WorkflowStepper";
+import { CreateClaimModal } from "@/components/billing/CreateClaimModal";
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { invoices, patients, encounters, payers, payments, discounts, refunds, auditLog, currentUser, dispatch } = useApp();
+  const { invoices, patients, encounters, payers, payments, discounts, refunds, insuranceClaims, auditLog, currentUser, dispatch } = useApp();
 
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
@@ -29,11 +30,13 @@ export default function InvoiceDetailPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [shareToast, setShareToast] = useState<string | null>(null);
+  const [initiateClaimOpen, setInitiateClaimOpen] = useState(false);
 
   const invoice = invoices.find((i) => i.id === id);
   const invoicePayments = useMemo(() => payments.filter((p) => p.invoiceId === id), [payments, id]);
   const invoiceDiscounts = useMemo(() => discounts.filter((d) => d.invoiceId === id), [discounts, id]);
   const invoiceRefunds = useMemo(() => refunds.filter((r) => r.invoiceId === id), [refunds, id]);
+  const invoiceClaim = useMemo(() => insuranceClaims.find((c) => c.invoiceId === id), [insuranceClaims, id]);
   const invoiceAudit = useMemo(() => auditLog.filter((a) => a.entityId === id || invoicePayments.some((p) => p.id === a.entityId) || invoiceDiscounts.some((d) => d.id === a.entityId)), [auditLog, id, invoicePayments, invoiceDiscounts]);
 
   if (!invoice) {
@@ -84,6 +87,49 @@ export default function InvoiceDetailPage() {
               <p className="mt-3 rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-600">Cancellation reason: {invoice.cancelledReason}. The original financial record remains in the audit history.</p>
             )}
           </section>
+
+          {/* Insurance / TPA Details Widget */}
+          {(invoiceClaim || (payer && payer.type !== "self")) && (
+            <section className="rounded-xl border border-brand-200 bg-brand-50/20 p-4 sm:p-5 shadow-card space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-brand-900">Insurance / TPA Claim Details</h3>
+                  <p className="text-xs text-ink-500">Payer: <strong className="text-ink-800">{payer?.name}</strong></p>
+                </div>
+                {invoiceClaim ? (
+                  <StatusBadge status={invoiceClaim.status} />
+                ) : (
+                  <button
+                    onClick={() => setInitiateClaimOpen(true)}
+                    className="rounded-lg bg-brand-600 px-3 py-1 text-xs font-medium text-white hover:bg-brand-700"
+                  >
+                    + Initiate Insurance Claim
+                  </button>
+                )}
+              </div>
+
+              {invoiceClaim && (
+                <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4 pt-1">
+                  <div className="rounded-lg bg-white p-2.5 border border-ink-100">
+                    <p className="text-ink-400 text-[11px]">Policy Number</p>
+                    <p className="font-mono font-semibold text-ink-800">{invoiceClaim.policyNumber}</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-2.5 border border-ink-100">
+                    <p className="text-ink-400 text-[11px]">Claimed Amount</p>
+                    <p className="font-medium text-ink-800">{formatINR(invoiceClaim.claimedAmount)}</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-2.5 border border-ink-100">
+                    <p className="text-ink-400 text-[11px]">Patient Responsibility</p>
+                    <p className="font-bold text-red-600">{formatINR(invoiceClaim.patientResponsibility)}</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-2.5 border border-ink-100">
+                    <p className="text-ink-400 text-[11px]">Payer Outstanding</p>
+                    <p className="font-bold text-amber-700">{formatINR(invoiceClaim.payerOutstanding)}</p>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Line items */}
           <section className="rounded-xl border border-ink-100 bg-white p-4 sm:p-5 shadow-card">
@@ -248,6 +294,8 @@ export default function InvoiceDetailPage() {
         <label htmlFor="cancel-reason" className="mb-1 block text-xs font-medium text-ink-600">Reason <span aria-hidden="true">*</span></label>
         <textarea id="cancel-reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={3} className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm" />
       </Modal>
+
+      <CreateClaimModal open={initiateClaimOpen} onClose={() => setInitiateClaimOpen(false)} prefillInvoiceId={invoice.id} />
     </div>
   );
 }
