@@ -1,6 +1,5 @@
 "use client";
 
-// Outstanding Balances page with explicit Patient vs Payer (TPA) breakdown
 import { useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -268,30 +267,10 @@ export default function OutstandingPage() {
                   </div>
 
                   <ul className="divide-y divide-ink-50 text-xs mb-3">
-<<<<<<< HEAD
-                    {pg.invoices.map((inv) => (
-                      <li key={inv.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 gap-2">
-                        <div>
-                          <span className="font-medium text-ink-800">{inv.invoiceNumber}</span>
-                          <span className="text-ink-400 ml-2">({formatDate(inv.date)})</span>
-                          <span className="ml-2 text-ink-500">Ageing: {ageingBucket(ageingDays(inv.date))}</span>
-                        </div>
-                        <div className="flex justify-between sm:justify-end gap-2 items-center">
-                          <span className="font-semibold text-red-600">{formatINR(inv.outstanding)}</span>
-                          <button
-                            onClick={() => setPayInvoice(inv)}
-                            className="rounded bg-brand-600 px-2.5 py-1 text-white hover:bg-brand-700 font-medium"
-                          >
-                            Collect
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-=======
                     {pg.invoices.map((inv) => {
                       const claim = insuranceClaims.find((c) => c.invoiceId === inv.id);
                       return (
-                        <li key={inv.id} className="flex justify-between py-2 items-center">
+                        <li key={inv.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 gap-2">
                           <div>
                             <span className="font-medium text-ink-800">{inv.invoiceNumber}</span>
                             <span className="text-ink-400 ml-2">({formatDate(inv.date)})</span>
@@ -302,11 +281,11 @@ export default function OutstandingPage() {
                               </span>
                             )}
                           </div>
-                          <div className="flex gap-2 items-center">
+                          <div className="flex justify-between sm:justify-end gap-2 items-center">
                             <span className="font-semibold text-red-600">{formatINR(inv.outstanding)}</span>
                             <button
                               onClick={() => setPayInvoice(inv)}
-                              className="rounded bg-brand-600 px-2 py-0.5 text-white hover:bg-brand-700"
+                              className="rounded bg-brand-600 px-2.5 py-1 text-white hover:bg-brand-700 font-medium"
                             >
                               Collect
                             </button>
@@ -314,7 +293,6 @@ export default function OutstandingPage() {
                         </li>
                       );
                     })}
->>>>>>> 75e09993601978a247277b52644205be62a18c7f
                   </ul>
 
                   <div className="flex justify-end gap-2">
