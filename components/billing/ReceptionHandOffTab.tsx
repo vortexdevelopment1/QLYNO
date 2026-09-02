@@ -136,14 +136,14 @@ export function ReceptionHandOffTab() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
               <div>
                 <p className="text-xs font-semibold text-ink-800">{ev.patientName}</p>
                 <p className="text-[11px] text-ink-400">{ev.uhid}</p>
               </div>
               <Link
                 href={ev.actionUrl}
-                className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700"
+                className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 text-center"
               >
                 {ev.actionLabel} →
               </Link>

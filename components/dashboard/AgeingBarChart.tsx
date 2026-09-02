@@ -74,7 +74,7 @@ export function AgeingBarChart({ invoices }: AgeingBarChartProps) {
               </div>
 
               {/* Amount label above bar */}
-              <span className="mb-1 font-mono text-[9px] xs:text-[10px] sm:text-[11px] font-semibold tracking-tight text-ink-700 truncate max-w-full">
+              <span className="mb-1 font-mono text-[10px] sm:text-xs font-semibold tracking-tight text-ink-700 truncate max-w-full">
                 {bucket.amount > 0 ? formatINR(bucket.amount) : "₹0"}
               </span>
 

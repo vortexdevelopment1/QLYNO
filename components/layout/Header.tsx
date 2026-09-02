@@ -78,29 +78,33 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
 
   return (
     <header className="sticky top-0 z-30 border-b border-ink-100 bg-white/95 backdrop-blur-md shadow-xs">
-      <div className="flex items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6">
+      <div className="flex items-center justify-between gap-1.5 px-2.5 py-2 sm:gap-2 sm:px-4 sm:py-3 lg:px-6">
 
         {/* Left: Mobile Toggle & Organization Context */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1">
           <button
             type="button"
             onClick={onOpenMobileNav}
             aria-label="Open navigation"
-            className="rounded-lg p-2 text-ink-600 hover:bg-ink-100 hover:text-ink-900 lg:hidden shrink-0"
+            className="rounded-lg p-1.5 text-ink-600 hover:bg-ink-100 hover:text-ink-900 lg:hidden shrink-0"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
 
-          <div className="flex flex-col min-w-0">
+          <div className="flex flex-col min-w-0 flex-1 pr-1 sm:pr-0">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-              <span className="truncate text-xs sm:text-sm font-bold text-ink-900">{currentOrg.name}</span>
+              <span className="text-xs sm:text-sm font-bold text-ink-900 leading-tight truncate">
+                {currentOrg.name}
+              </span>
               <span className="rounded-md bg-brand-50 border border-brand-100 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-semibold text-brand-700 uppercase tracking-wider shrink-0">
                 {ORG_TYPE_LABEL[currentOrg.type]}
               </span>
             </div>
-            <span className="truncate text-[11px] sm:text-xs font-medium text-ink-500">{currentOrg.city} · {scopeDisplay}</span>
+            <span className="truncate text-[10px] sm:text-xs font-medium text-ink-500 leading-tight mt-0.5">
+              {currentOrg.city} · {scopeDisplay}
+            </span>
           </div>
         </div>
 
@@ -193,13 +197,13 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
         </div>
 
         {/* Right Utilities: Mobile Search Toggle, Quick Action, Notifications, Help & User Profile */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Mobile Search Button */}
           <button
             type="button"
             onClick={() => setMobileSearchOpen((v) => !v)}
             aria-label="Search"
-            className="rounded-lg p-2 text-ink-600 hover:bg-ink-100 hover:text-ink-900 md:hidden transition-colors"
+            className="rounded-lg p-1.5 text-ink-600 hover:bg-ink-100 hover:text-ink-900 md:hidden transition-colors"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -211,10 +215,10 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
             onClick={() => setDailyCollectionOpen(true)}
             title="Quick View Daily Collection"
             aria-label="Quick View Daily Collection"
-            className="flex items-center gap-1 sm:gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2 sm:px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors"
+            className="flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 sm:px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors"
           >
             <span className="font-mono font-black text-emerald-600">₹</span>
-            <span className="hidden xs:inline sm:inline">Daily</span>
+            <span className="hidden sm:inline">Daily</span>
           </button>
 
           {/* Notifications Bell */}
@@ -227,11 +231,11 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-white" />
+            <span className="absolute right-1 top-1 sm:right-1.5 sm:top-1.5 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-white" />
           </button>
 
-          {/* Help Popover */}
-          <div className="relative">
+          {/* Help Popover (Desktop & Tablet) */}
+          <div className="relative hidden sm:block">
             <button
               type="button"
               onClick={() => { setHelpOpen((v) => !v); setUserMenuOpen(false); }}
@@ -243,7 +247,7 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
               </svg>
             </button>
             {helpOpen && (
-              <div role="dialog" aria-label="Help and support" className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-2rem)] sm:w-72 max-w-xs rounded-xl border border-ink-100 bg-white p-4 text-left text-sm shadow-2xl">
+              <div role="dialog" aria-label="Help and support" className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-1.5rem)] sm:w-72 max-w-xs rounded-xl border border-ink-100 bg-white p-4 text-left text-sm shadow-2xl">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-brand-700 text-xs font-bold">?</div>
                   <p className="font-bold text-ink-900">Qlyno Support &amp; Rules</p>
@@ -259,24 +263,24 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
           </div>
 
           {/* User Profile & Demo Switcher Popover */}
-          <div className="relative border-l border-ink-100 pl-2 sm:pl-3">
+          <div className="relative border-l border-ink-100 pl-1.5 sm:pl-3">
             <button
               type="button"
               onClick={() => { setUserMenuOpen((v) => !v); setHelpOpen(false); }}
-              className="flex items-center gap-2 rounded-lg p-1 text-left hover:bg-ink-50 transition-colors focus:outline-none"
+              className="flex items-center gap-2 rounded-lg p-0.5 sm:p-1 text-left hover:bg-ink-50 transition-colors focus:outline-none"
             >
               <div className="hidden text-right md:block">
                 <p className="text-xs sm:text-sm font-bold text-ink-900 leading-tight">{currentUser.name}</p>
                 <p className="text-[11px] font-medium text-ink-500">{userPermissionText}</p>
               </div>
-              <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gradient-to-tr from-brand-600 to-brand-500 text-xs sm:text-sm font-bold text-white shadow-sm ring-2 ring-brand-100 shrink-0">
+              <div className="flex h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-full bg-gradient-to-tr from-brand-600 to-brand-500 text-xs sm:text-sm font-bold text-white shadow-sm ring-2 ring-brand-100 shrink-0">
                 {currentUser.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
               </div>
             </button>
 
             {/* Profile & Demo Switcher Dropdown */}
             {userMenuOpen && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-2xl border border-ink-100 bg-white p-4 shadow-2xl">
+              <div className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm rounded-2xl border border-ink-100 bg-white p-4 shadow-2xl">
                 <div className="border-b border-ink-100 pb-3 mb-3">
                   <p className="font-bold text-ink-900">{currentUser.name}</p>
                   <p className="text-xs text-ink-500">{currentUser.email}</p>
@@ -290,6 +294,17 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
                         : SCOPE_LABELS[currentUser.scopes[0]] ?? currentUser.scopes[0].toUpperCase()}
                     </span>
                   </div>
+                </div>
+
+                {/* Mobile Help & Rules banner */}
+                <div className="mb-3 border-b border-ink-100 pb-3 sm:hidden">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-ink-900 mb-1">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-100 text-brand-700 text-[10px]">?</span>
+                    <span>Qlyno Rules &amp; Support</span>
+                  </div>
+                  <p className="text-[11px] text-ink-500 leading-relaxed">
+                    Billing workflows, discount caps, refund approvals, and audit trails are managed within organization policy.
+                  </p>
                 </div>
 
                 {/* Mobile Hospital Scope Switcher */}

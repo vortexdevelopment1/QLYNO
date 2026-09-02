@@ -122,16 +122,16 @@ export default function PendingBillingPage() {
                 + Create Combined Invoice{selectedPatientName ? ` for ${selectedPatientName}` : ""} ({selectedItemIds.length})
               </button>
             )}
-            <div className="flex overflow-hidden rounded-lg border border-ink-200 bg-white">
+            <div className="flex w-full sm:w-auto overflow-hidden rounded-lg border border-ink-200 bg-white">
               <button
                 onClick={() => setActiveTab("pending")}
-                className={`px-3 py-1.5 text-xs font-medium ${activeTab === "pending" ? "bg-brand-600 text-white" : "text-ink-600 hover:bg-ink-50"}`}
+                className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-medium ${activeTab === "pending" ? "bg-brand-600 text-white" : "text-ink-600 hover:bg-ink-50"}`}
               >
                 Pending Billable ({items.length})
               </button>
               <button
                 onClick={() => setActiveTab("reception")}
-                className={`px-3 py-1.5 text-xs font-medium ${activeTab === "reception" ? "bg-brand-600 text-white" : "text-ink-600 hover:bg-ink-50"}`}
+                className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-medium ${activeTab === "reception" ? "bg-brand-600 text-white" : "text-ink-600 hover:bg-ink-50"}`}
               >
                 Reception Hand-off Matrix
               </button>
@@ -142,12 +142,12 @@ export default function PendingBillingPage() {
       <PermissionGuard permission="viewBills">
         {activeTab === "pending" ? (
           <>
-            <div className="rounded-lg border border-ink-200 bg-ink-50 p-2.5 text-xs text-ink-600 flex items-center justify-between">
+            <div className="rounded-lg border border-ink-200 bg-ink-50 p-2.5 text-xs text-ink-600 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 💡 <span className="font-semibold text-ink-800">Service Policy:</span> Independent external lab &amp; pharmacy services are billed separately unless integrated. Select items below to generate a combined invoice.
               </div>
               {selectedItemIds.length > 0 && (
-                <span className="shrink-0 font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">
+                <span className="self-start sm:self-center shrink-0 font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">
                   {selectedItemIds.length} item(s) selected {selectedPatientName ? `(${selectedPatientName})` : ""}
                 </span>
               )}
