@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { formatINR, nextId } from "@/lib/utils";
 import { ApprovalStatus, DiscountLevel } from "@/types";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 const HIGH_THRESHOLD_PERCENT = 20;
 const SPECIAL_THRESHOLD_PERCENT = 40;
 
 export function DiscountForm({ invoiceId: fixedInvoiceId, onCancel, onDone }: { invoiceId?: string; onCancel: () => void; onDone?: () => void }) {
-  const { currentOrg, currentUser, invoices, dispatch } = useApp();
+  const { currentOrg, currentUser, invoices, patients, dispatch } = useApp();
   const eligibleInvoices = invoices.filter((i) => i.organizationId === currentOrg.id && i.status !== "cancelled" && i.status !== "draft");
 
   const [invoiceId, setInvoiceId] = useState(fixedInvoiceId ?? "");
@@ -55,12 +56,20 @@ export function DiscountForm({ invoiceId: fixedInvoiceId, onCancel, onDone }: { 
       {!fixedInvoiceId && (
         <div>
           <label htmlFor="df-invoice" className="mb-1 block text-xs font-medium text-ink-600">Invoice</label>
-          <select id="df-invoice" value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)} className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm">
-            <option value="">Select invoice…</option>
-            {eligibleInvoices.map((inv) => (
-              <option key={inv.id} value={inv.id}>{inv.invoiceNumber} — subtotal {formatINR(inv.subtotal)}</option>
-            ))}
-          </select>
+          <SearchableSelect
+            id="df-invoice"
+            value={invoiceId}
+            onChange={setInvoiceId}
+            placeholder="Select invoice…"
+            options={eligibleInvoices.map((inv) => {
+              const p = patients.find((pat) => pat.id === inv.patientId);
+              return {
+                value: inv.id,
+                label: `${inv.invoiceNumber} — ${p?.name || "Unknown"} (subtotal ${formatINR(inv.subtotal)})`,
+                searchKeywords: p?.name,
+              };
+            })}
+          />
         </div>
       )}
 

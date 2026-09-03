@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useApp } from "@/context/AppContext";
 import { InsuranceClaim } from "@/types";
 import { nextId, formatINR } from "@/lib/utils";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 interface CreateClaimModalProps {
   open: boolean;
@@ -128,22 +129,20 @@ export function CreateClaimModal({ open, onClose, prefillInvoiceId }: CreateClai
 
         <div>
           <label htmlFor="select-invoice" className="mb-1 block font-medium text-ink-700">Select Invoice *</label>
-          <select
+          <SearchableSelect
             id="select-invoice"
             value={invoiceId}
-            onChange={(e) => setInvoiceId(e.target.value)}
-            className="w-full rounded-lg border border-ink-200 p-2 text-sm focus:border-brand-500 focus:outline-none"
-          >
-            <option value="">Select an invoice...</option>
-            {eligibleInvoices.map((i) => {
+            onChange={setInvoiceId}
+            placeholder="Select an invoice..."
+            options={eligibleInvoices.map((i) => {
               const p = patients.find((pat) => pat.id === i.patientId);
-              return (
-                <option key={i.id} value={i.id}>
-                  {i.invoiceNumber} — {p?.name} ({formatINR(i.total)})
-                </option>
-              );
+              return {
+                value: i.id,
+                label: `${i.invoiceNumber} — ${p?.name || "Unknown"} (${formatINR(i.total)})`,
+                searchKeywords: p?.name,
+              };
             })}
-          </select>
+          />
         </div>
 
         {selectedInvoice && selectedPatient && (

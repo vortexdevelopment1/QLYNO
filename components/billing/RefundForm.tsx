@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { formatINR, nextId } from "@/lib/utils";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 const APPROVAL_THRESHOLD = 5000;
 
@@ -59,12 +60,20 @@ export function RefundForm({
       {!fixedInvoiceId && (
         <div>
           <label htmlFor="rf-invoice" className="mb-1 block text-xs font-medium text-ink-600">Invoice</label>
-          <select id="rf-invoice" value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)} className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm">
-            <option value="">Select a paid invoice…</option>
-            {refundableInvoices.map((inv) => (
-              <option key={inv.id} value={inv.id}>{inv.invoiceNumber} — paid {formatINR(inv.paidTotal)}</option>
-            ))}
-          </select>
+          <SearchableSelect
+            id="rf-invoice"
+            value={invoiceId}
+            onChange={setInvoiceId}
+            placeholder="Select a paid invoice…"
+            options={refundableInvoices.map((inv) => {
+              const p = patients.find((pat) => pat.id === inv.patientId);
+              return {
+                value: inv.id,
+                label: `${inv.invoiceNumber} — ${p?.name || "Unknown"} (paid ${formatINR(inv.paidTotal)})`,
+                searchKeywords: p?.name,
+              };
+            })}
+          />
         </div>
       )}
 

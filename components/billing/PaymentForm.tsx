@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { PaymentMethod } from "@/types";
 import { formatINR, nextId } from "@/lib/utils";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "cash", label: "Cash" },
@@ -83,12 +84,20 @@ export function PaymentForm({
       {!fixedInvoiceId && (
         <div>
           <label htmlFor="pf-invoice" className="mb-1 block text-xs font-medium text-ink-600">Invoice</label>
-          <select id="pf-invoice" value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)} className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm">
-            <option value="">Select invoice with outstanding balance…</option>
-            {payableInvoices.map((inv) => (
-              <option key={inv.id} value={inv.id}>{inv.invoiceNumber} — {formatINR(inv.outstanding)} due</option>
-            ))}
-          </select>
+          <SearchableSelect
+            id="pf-invoice"
+            value={invoiceId}
+            onChange={setInvoiceId}
+            placeholder="Select invoice with outstanding balance…"
+            options={payableInvoices.map((inv) => {
+              const p = patients.find((pat) => pat.id === inv.patientId);
+              return {
+                value: inv.id,
+                label: `${inv.invoiceNumber} — ${p?.name || "Unknown"} (${formatINR(inv.outstanding)} due)`,
+                searchKeywords: p?.name,
+              };
+            })}
+          />
         </div>
       )}
 
