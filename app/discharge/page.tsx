@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { DataTable, Column } from "@/components/ui/DataTable";
+import { SearchBar } from "@/components/ui/SearchBar";
 import { formatINR, formatDate } from "@/lib/utils";
 
 export default function DischargeBillingPage() {
@@ -20,6 +22,58 @@ export default function DischargeBillingPage() {
     admissions[0]?.admissionId || "ADM-4521"
   );
   const [settledSuccessMsg, setSettledSuccessMsg] = useState("");
+  const [query, setQuery] = useState("");
+
+  const filteredAdmissions = useMemo(() => {
+    return admissions.filter((adm) => {
+      const pat = patients.find((p) => p.id === adm.patientId);
+      if (!query) return true;
+      const q = query.toLowerCase();
+      return (
+        pat?.name.toLowerCase().includes(q) ||
+        pat?.uhid.toLowerCase().includes(q) ||
+        adm.admissionId?.toLowerCase().includes(q)
+      );
+    });
+  }, [admissions, patients, query]);
+
+  const columns: Column<typeof admissions[0]>[] = [
+    {
+      header: "Patient",
+      accessor: (adm) => {
+        const pat = patients.find((p) => p.id === adm.patientId);
+        return (
+          <div>
+            <div className="font-bold">{pat?.name}</div>
+            <div className="text-[10px] text-ink-500">{pat?.uhid}</div>
+          </div>
+        );
+      },
+    },
+    {
+      header: "Admission ID",
+      accessor: (adm) => (
+        <span className="font-mono bg-ink-100 px-1.5 py-0.5 rounded text-ink-700">{adm.admissionId}</span>
+      ),
+    },
+    {
+      header: "Department & Room",
+      accessor: (adm) => (
+        <div>
+          <div>{adm.department}</div>
+          <div className="text-[10px] text-ink-500">{adm.roomBed || "Ward"}</div>
+        </div>
+      ),
+    },
+    {
+      header: "Doctor",
+      accessor: (adm) => `Dr. ${adm.doctorName?.replace("Dr. ", "")}`,
+    },
+    {
+      header: "Status",
+      accessor: (adm) => <StatusBadge status={adm.status} />,
+    },
+  ];
 
   const selectedEncounter = admissions.find((a) => a.admissionId === selectedAdmissionId) || admissions[0];
   const selectedPatient = patients.find((p) => p.id === selectedEncounter?.patientId);
@@ -133,43 +187,30 @@ export default function DischargeBillingPage() {
         </div>
       )}
 
-      {/* Admission Selection Selector */}
-      <div className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
-        <label className="block text-xs font-bold uppercase tracking-wider text-ink-500 mb-2">
-          Select Active Hospital Admission
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {admissions.map((adm) => {
-            const pat = patients.find((p) => p.id === adm.patientId);
-            const isSelected = adm.admissionId === selectedAdmissionId;
-            return (
-              <button
-                key={adm.id}
-                onClick={() => {
-                  setSelectedAdmissionId(adm.admissionId || "");
-                  setSettledSuccessMsg("");
-                }}
-                className={`rounded-xl border text-left p-3 transition-all ${
-                  isSelected
-                    ? "border-brand-500 bg-brand-50/70 shadow-sm ring-1 ring-brand-500"
-                    : "border-ink-200 bg-white hover:bg-ink-50"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-ink-900">{pat?.name}</span>
-                  <span className="text-[10px] font-mono bg-ink-100 px-1.5 py-0.5 rounded text-ink-700">{adm.admissionId}</span>
-                </div>
-                <div className="mt-1 text-[11px] text-ink-500">
-                  {adm.department} • {adm.roomBed || "Ward"}
-                </div>
-                <div className="mt-2 flex items-center justify-between text-[11px]">
-                  <span className="text-ink-400">Dr. {adm.doctorName?.replace("Dr. ", "")}</span>
-                  <StatusBadge status={adm.status} />
-                </div>
-              </button>
-            );
-          })}
+      {/* Admission Selection Table */}
+      <div className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <label className="text-xs font-bold uppercase tracking-wider text-ink-500">
+            Select Active Hospital Admission
+          </label>
+          <div className="w-full sm:w-64">
+            <SearchBar value={query} onChange={setQuery} placeholder="Search admissions..." ariaLabel="Search admissions" />
+          </div>
         </div>
+        <DataTable
+          columns={columns}
+          rows={filteredAdmissions}
+          rowKey={(adm) => adm.admissionId || ""}
+          emptyTitle="No admissions found"
+          emptyDescription="Try adjusting your search query."
+          onRowClick={(adm) => {
+            setSelectedAdmissionId(adm.admissionId || "");
+            setSettledSuccessMsg("");
+          }}
+          pagination={true}
+          pageSize={5}
+          selectedRowKey={selectedAdmissionId}
+        />
       </div>
 
       {/* Selected Admission Discharge Summary Dashboard */}
