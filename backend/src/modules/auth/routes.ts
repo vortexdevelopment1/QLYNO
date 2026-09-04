@@ -1,0 +1,22 @@
+import { Router } from "express";
+import { getEnv } from "../../config/env";
+import { authenticate } from "../../middleware/authenticate";
+import { requireActiveAccount } from "../../middleware/require-active-account";
+import { tenantScope } from "../../middleware/tenant-scope";
+import { authorize } from "../../middleware/authorize";
+import { SYSTEM_ROLES } from "../../config/permissions";
+import { validate } from "../../middleware/validate";
+import { asyncHandler } from "../../utils/async-handler";
+import { completeInviteSchema, emptySchema, forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema } from "./schema";
+import * as service from "./service";
+
+export const authRoutes = Router();
+authRoutes.post("/login", validate({ body: loginSchema }), asyncHandler(async (req, res) => { const result = await service.login(req.body, req); service.setRefreshCookie(res, result.refreshToken); res.json({ accessToken: result.accessToken, user: result.user }); }));
+authRoutes.post("/register", validate({ body: registerSchema }), asyncHandler(async (req, res) => { const result = await service.registerExternal(req.body); res.status(202).json({ data: result, message: "Registration submitted for approval" }); }));
+authRoutes.post("/register/complete-invite", validate({ body: completeInviteSchema }), asyncHandler(async (req, res) => { res.json({ data: await service.completeInvite(req.body) }); }));
+authRoutes.post("/refresh", validate({ body: emptySchema }), asyncHandler(async (req, res) => { const result = await service.rotateRefreshToken(req.cookies?.qlyno_refresh as string | undefined, req); service.setRefreshCookie(res, result.refreshToken); res.json({ accessToken: result.accessToken, user: result.user }); }));
+authRoutes.post("/forgot-password", validate({ body: forgotPasswordSchema }), asyncHandler(async (req, res) => { const token = await service.forgotPassword(req.body.email, req.body.tenantSlug); res.json({ message: "If the account exists, password-reset instructions have been sent", ...(getEnv().NODE_ENV === "development" && token ? { devResetToken: token } : {}) }); }));
+authRoutes.post("/reset-password", validate({ body: resetPasswordSchema }), asyncHandler(async (req, res) => { await service.resetPassword(req.body.token, req.body.password); res.json({ message: "Password updated" }); }));
+const protectedAuth = [authenticate, requireActiveAccount, tenantScope, authorize(...SYSTEM_ROLES)];
+authRoutes.post("/logout", ...protectedAuth, validate({ body: emptySchema }), asyncHandler(async (req, res) => { await service.logout(req.cookies?.qlyno_refresh as string | undefined); service.clearRefreshCookie(res); res.status(204).send(); }));
+authRoutes.post("/logout-all", ...protectedAuth, validate({ body: emptySchema }), asyncHandler(async (req, res) => { await service.logoutAll(req.user!.userId); service.clearRefreshCookie(res); res.status(204).send(); }));

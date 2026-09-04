@@ -1,0 +1,12 @@
+process.env.NODE_ENV = "test";
+process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/qlyno_test";
+process.env.JWT_ACCESS_SECRET = "test-access-secret-that-is-at-least-thirty-two-characters";
+process.env.JWT_RESET_SECRET = "test-reset-secret-that-is-at-least-thirty-two-characters";
+process.env.JWT_ISSUER = "qlyno-test";
+process.env.JWT_AUDIENCE = "qlyno-test-client";
+process.env.ACCESS_TOKEN_TTL = "15m";
+process.env.REFRESH_TOKEN_DAYS = "14";
+process.env.CORS_ORIGINS = "http://localhost:3000";
+process.env.COOKIE_SECURE = "false";
+process.env.PASSWORD_PEPPER = "unit-test-password-pepper";
+process.env.LOG_LEVEL = "silent";

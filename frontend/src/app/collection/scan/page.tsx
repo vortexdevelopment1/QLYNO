@@ -1,0 +1,57 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { CheckCircle2, Clock3, ShieldCheck } from "lucide-react";
+import { EntityHeader } from "@/components/ui/EntityHeader";
+import { ScanSimulator } from "@/components/domain/ScanSimulator";
+import { BarcodeLabelPreview } from "@/components/domain/BarcodeLabelPreview";
+import { useHospitalWorkflow } from "@/state/hospital-workflow-context";
+import { useDemo } from "@/state/demo-context";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StatusBadge } from "@/components/ui/Badge";
+import { useToast } from "@/components/ui/Toast";
+
+const CHECKS = ["Patient and MRN match", "Order and requisition match", "Container and label match", "Seal is intact", "Collection time is acceptable"];
+
+export default function CollectionScanPage() {
+  const params = useSearchParams(); const router = useRouter(); const { showToast } = useToast(); const { session } = useDemo();
+  const { activeSpecimens, lifecycleEvents, confirmReceipt } = useHospitalWorkflow();
+  const [selectedId, setSelectedId] = useState<string>(); const [error, setError] = useState<string>(); const [checks, setChecks] = useState<boolean[]>(CHECKS.map(() => false));
+  const [condition, setCondition] = useState("Acceptable"); const [sealStatus, setSealStatus] = useState("Intact"); const [temperature, setTemperature] = useState("Ambient"); const [notes, setNotes] = useState("");
+  const [siteFilter, setSiteFilter] = useState("all"); const [locationFilter, setLocationFilter] = useState("all"); const [priorityFilter, setPriorityFilter] = useState("all");
+  const permitted = useMemo(() => activeSpecimens.filter((entry) => entry.tenantId === session?.tenantId && Boolean(entry.siteId && session?.allowedSiteIds.includes(entry.siteId))), [activeSpecimens, session]);
+  const pending = permitted.filter((entry) => ["collected", "in_transit"].includes(entry.status) && (siteFilter === "all" || entry.siteId === siteFilter) && (locationFilter === "all" || entry.collectionLocation === locationFilter) && (priorityFilter === "all" || entry.priority === priorityFilter)); const recent = permitted.filter((entry) => ["received", "accepted", "accessioned"].includes(entry.status));
+  const selected = permitted.find((entry) => entry.id === selectedId); const canReceive = Boolean(session?.permissions.includes("specimen.receive"));
+
+  function choose(specimenId: string, requestedOrderId?: string | null) {
+    const any = activeSpecimens.find((entry) => entry.id.toLowerCase() === specimenId.trim().toLowerCase());
+    if (!any) { setSelectedId(undefined); setError(`Unknown specimen ${specimenId}. No patient or order data was exposed.`); return; }
+    if (!session || any.tenantId !== session.tenantId || !any.siteId || !session.allowedSiteIds.includes(any.siteId)) { setSelectedId(undefined); setError("Access denied. This specimen is outside your permitted tenant or site."); return; }
+    if (requestedOrderId && any.orderId !== requestedOrderId) { setSelectedId(undefined); setError(`Data-integrity error: ${any.id} belongs to ${any.orderId}, not ${requestedOrderId}.`); return; }
+    setError(undefined); if (selectedId !== any.id) setChecks(CHECKS.map(() => false)); setSelectedId(any.id); if (params.get("orderId") !== any.orderId || params.get("specimenId") !== any.id) router.replace(`/collection/scan?orderId=${any.orderId}&specimenId=${any.id}`, { scroll: false });
+  }
+
+  useEffect(() => { const specimenId = params.get("specimenId"); if (specimenId) choose(specimenId, params.get("orderId")); }, [params]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function receive() { if (!selected) return; const result = confirmReceipt(selected.orderId, selected.id, { condition, sealStatus, temperature, notes }); if (!result.ok) return showToast({ title: "Receipt not confirmed", description: result.message, tone: "warning" }); showToast({ title: "Specimen received", description: `${selected.id} is now in the Accessioning queue.`, tone: "success" }); router.push(`/accessioning?orderId=${selected.orderId}&specimenId=${selected.id}`); }
+
+  return <div className="space-y-6">
+    <EntityHeader eyebrow="Module 4 · Collection & Specimens" title="Receiving Scanner" subtitle="Scan or select a collected specimen, verify custody, and hand it to Accessioning." />
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(340px,.6fr)]">
+      <div className="space-y-4"><ScanSimulator onScan={(code) => choose(code)} />{error && <div role="alert" className="rounded-card border border-red-200 bg-red-50 p-4 text-sm font-semibold text-status-critical">{error}</div>}
+        <Card className="overflow-hidden"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-app-border p-4"><div><h2 className="font-display text-lg font-semibold">Pending handovers</h2><p className="text-xs text-text-muted">COLLECTED or IN_TRANSIT specimens in your permitted scope</p></div><span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-status-warning">{pending.length} pending</span><div className="flex w-full flex-wrap gap-2"><CompactFilter label="Site" value={siteFilter} onChange={setSiteFilter} options={["all", ...Array.from(new Set(permitted.map((entry) => entry.siteId).filter(Boolean))) as string[]]}/><CompactFilter label="Location" value={locationFilter} onChange={setLocationFilter} options={["all", ...Array.from(new Set(permitted.map((entry) => entry.collectionLocation).filter(Boolean))) as string[]]}/><CompactFilter label="Priority" value={priorityFilter} onChange={setPriorityFilter} options={["all", "routine", "urgent", "stat"]}/></div></div><div className="divide-y divide-app-border">{pending.map((entry) => <button key={entry.id} type="button" onClick={() => choose(entry.id, entry.orderId)} className={`grid w-full grid-cols-[1fr_auto] gap-3 p-4 text-left transition hover:bg-app-bg ${selectedId === entry.id ? "bg-emerald-50 ring-1 ring-inset ring-brand-blue" : ""}`}><div><div className="flex flex-wrap items-center gap-2"><strong>{entry.id}</strong><span className="text-xs text-text-muted">{entry.orderId}</span><StatusBadge status={entry.status} /></div><p className="mt-1 text-sm">{entry.patientName} · {entry.mrn}</p><p className="mt-1 text-xs text-text-muted">{entry.type} · {entry.container} · {entry.collectionLocation}</p></div><span className="self-center text-xs font-semibold text-brand-blue">{selectedId === entry.id ? "Selected" : "Open"}</span></button>)}{pending.length === 0 && <p className="p-8 text-center text-sm text-text-muted">No pending receiving handovers match these filters.</p>}</div></Card>
+        <Card className="p-4"><div className="mb-3 flex items-center gap-2"><Clock3 className="h-4 w-4 text-brand-blue"/><h2 className="font-semibold">Recently received</h2></div><div className="flex flex-wrap gap-2">{recent.map((entry) => <button type="button" key={entry.id} onClick={() => choose(entry.id, entry.orderId)} className="rounded-full border border-app-border bg-app-bg px-3 py-1.5 text-xs hover:border-brand-blue">{entry.id} · {entry.status}</button>)}{recent.length === 0 && <span className="text-xs text-text-muted">No receipts recorded in this demo session.</span>}</div></Card>
+      </div>
+      <div className="space-y-4 xl:sticky xl:top-20 xl:self-start">{selected ? <><BarcodeLabelPreview specimenId={selected.id} patientName={selected.patientName} testSummary={selected.type} container={selected.container} /><Card className="p-5"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 text-brand-blue"/><div><p className="text-xs font-semibold uppercase tracking-wide text-brand-blue">Receiving verification</p><h3 className="font-display text-lg font-semibold">{selected.id} · {selected.orderId}</h3></div></div>
+        {["received", "accepted", "accessioned"].includes(selected.status) ? <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm"><p className="flex items-center gap-2 font-semibold text-emerald-800"><CheckCircle2 className="h-4 w-4"/>Already received</p><p className="mt-1 text-xs text-emerald-700">Received {selected.receivedAt ?? "earlier"} by {selected.receivedBy ?? "an authorized user"}. It is no longer pending.</p></div> : <><div className="mt-4 space-y-2">{CHECKS.map((label, index) => <label key={label} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={checks[index]} onChange={(event) => setChecks((current) => current.map((value, i) => i === index ? event.target.checked : value))} disabled={!canReceive} className="h-4 w-4"/>{label}</label>)}</div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2"><Field label="Condition" value={condition} onChange={setCondition} options={["Acceptable", "Haemolysed", "Clotted", "Compromised"]}/><Field label="Seal" value={sealStatus} onChange={setSealStatus} options={["Intact", "Broken", "Leaking"]}/><Field label="Temperature" value={temperature} onChange={setTemperature} options={["Ambient", "2–8°C", "Frozen"]}/></div><label className="mt-3 block text-xs font-medium text-text-muted">Receipt notes<textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-20 w-full rounded-control border border-app-border p-3 text-sm" placeholder="Condition, custody or exception notes"/></label>
+        {!canReceive && <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-status-warning">Read-only: requires specimen.receive permission. Current user: {session?.userName ?? "Not signed in"}.</div>}<Button className="mt-4 w-full" disabled={!canReceive || !checks.every(Boolean)} disabledReason={!canReceive ? "Requires specimen.receive permission" : "Complete all receiving checks"} onClick={receive}>Confirm Receipt</Button></>}
+        <p className="mt-4 text-[11px] text-text-muted">{lifecycleEvents.filter((event) => event.specimenId === selected.id).length} immutable lifecycle events linked to this specimen.</p></Card></> : <div className="rounded-card border border-dashed border-app-border p-10 text-center text-sm text-text-muted">Scan or select a pending handover. Nothing is selected automatically.</div>}</div>
+    </div>
+  </div>;
+}
+
+function Field({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: string[] }) { return <label className="text-xs font-medium text-text-muted">{label}<select value={value} onChange={(event) => onChange(event.target.value)} className="mt-1 h-10 w-full rounded-control border border-app-border bg-white px-3 text-sm text-text-main">{options.map((option) => <option key={option}>{option}</option>)}</select></label>; }
+function CompactFilter({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: string[] }) { return <label className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">{label}<select value={value} onChange={(event) => onChange(event.target.value)} className="ml-2 h-8 rounded-control border border-app-border bg-white px-2 text-xs normal-case text-text-main">{options.map((option) => <option key={option} value={option}>{option === "all" ? `All ${label.toLowerCase()}s` : option}</option>)}</select></label>; }
