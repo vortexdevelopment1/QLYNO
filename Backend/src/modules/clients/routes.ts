@@ -1,0 +1,18 @@
+import { z } from "zod";
+import { prisma } from "../../db/prisma";
+import { protectedRouter } from "../../middleware/protected";
+import { authorize, rejectAuditorWrites, requirePermission } from "../../middleware/authorize";
+import { validate } from "../../middleware/validate";
+import { asyncHandler } from "../../utils/async-handler";
+import { notFound } from "../../utils/errors";
+const params = z.object({ id: z.string().min(1) }).strict();
+const client = z.object({ name: z.string().min(2).max(180), type: z.enum(["clinic", "hospital", "corporate", "insurer_tpa", "collection_center", "client_lab", "reference_lab"]), contactPerson: z.string().min(2).max(120), contactEmail: z.string().email(), creditLimit: z.number().nonnegative().optional(), creditTermsDays: z.number().int().min(0).max(365).optional() }).strict();
+export const clientRoutes = protectedRouter();
+clientRoutes.use(authorize("tenant_admin", "reception_cashier", "lab_director", "auditor", "client_lab_user"));
+clientRoutes.get("/", asyncHandler(async (req, res) => { res.json({ data: await prisma.clientOrganization.findMany({ where: { tenantId: req.context!.tenantId, ...(req.context!.roles.includes("client_lab_user") ? { id: req.context!.clientOrganizationId ?? "__none__" } : {}) }, orderBy: { name: "asc" } }) }); }));
+clientRoutes.get("/:id", validate({ params }), asyncHandler(async (req, res) => { const row = await prisma.clientOrganization.findFirst({ where: { tenantId: req.context!.tenantId, id: String(req.params.id), ...(req.context!.roles.includes("client_lab_user") ? { id: req.context!.clientOrganizationId ?? "__none__" } : {}) }, include: { contracts: true, orders: { where: { tenantId: req.context!.tenantId }, take: 50 } } }); if (!row) throw notFound("Client"); res.json({ data: row }); }));
+clientRoutes.post("/", rejectAuditorWrites, requirePermission("admin.users"), validate({ body: client }), asyncHandler(async (req, res) => { res.status(201).json({ data: await prisma.clientOrganization.create({ data: { tenantId: req.context!.tenantId, ...req.body } }) }); }));
+export const practitionerRoutes = protectedRouter();
+practitionerRoutes.use(authorize("tenant_admin", "reception_cashier", "lab_director", "auditor", "referring_clinician"));
+practitionerRoutes.get("/", asyncHandler(async (req, res) => { res.json({ data: await prisma.practitioner.findMany({ where: { tenantId: req.context!.tenantId, ...(req.context!.roles.includes("referring_clinician") ? { id: req.context!.practitionerId ?? "__none__" } : {}) }, orderBy: { name: "asc" } }) }); }));
+practitionerRoutes.post("/", rejectAuditorWrites, requirePermission("admin.users"), validate({ body: z.object({ name: z.string().min(2), specialty: z.string().min(2), clinicOrHospital: z.string().min(2), phone: z.string().min(5) }).strict() }), asyncHandler(async (req, res) => { res.status(201).json({ data: await prisma.practitioner.create({ data: { tenantId: req.context!.tenantId, ...req.body } }) }); }));

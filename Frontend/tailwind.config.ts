@@ -60,11 +60,7 @@ const billingTheme = {
 const config: Config = {
   darkMode: ["class"],
   content: [
-    "./app/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./lib/**/*.{ts,tsx}",
-    "./hospital-admin/**/*.{ts,tsx}",
-    "./billing-staff/**/*.{ts,tsx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     container: {
@@ -130,11 +126,37 @@ const config: Config = {
           border: "hsl(var(--sidebar-border))",
           active: "hsl(var(--sidebar-active))",
         },
+        app: {
+          bg: "#F6F7F2",
+          surface: "#FEFEFC",
+          sidebar: "#FBFCF9",
+          border: "#E2E6DE",
+        },
+        text: {
+          main: "#17251F",
+          muted: "#6F7A74",
+        },
+        pastel: {
+          lavender: "#EEEAE4",
+          blue: "#E3F0EC",
+          lime: "#F2F1E8",
+          teal: "#DDEDE8",
+        },
+        status: {
+          success: "#2F9D68",
+          warning: "#D99100",
+          critical: "#D64545",
+          info: "#3678D4",
+        },
         paper: billingTheme.paper,
         surface: billingTheme.surface,
         ink: billingTheme.ink,
         line: billingTheme.line,
-        brand: billingTheme.brand,
+        brand: {
+          ...billingTheme.brand,
+          blue: "#176B5B",
+          teal: "#287D6E",
+        },
         clay: {
           50: billingTheme.warning[50],
           100: billingTheme.warning[100],
@@ -172,6 +194,7 @@ const config: Config = {
       },
       borderRadius: {
         card: "8px",
+        control: "8px",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
@@ -200,6 +223,11 @@ const config: Config = {
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.25s ease-out",
         "pulse-dot": "pulse-dot 2s ease-in-out infinite",
+      },
+      spacing: {
+        sidebar: "292px",
+        "sidebar-collapsed": "80px",
+        topbar: "68px",
       },
     },
   },
