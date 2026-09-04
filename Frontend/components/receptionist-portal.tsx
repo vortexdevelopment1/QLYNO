@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { LayoutDashboard, Menu, Search as SearchIcon, Stethoscope, Zap, Bell } from "lucide-react";
+import { Bell, LayoutDashboard, LogOut, Menu, Search as SearchIcon, Stethoscope, Zap } from "lucide-react";
 import { navItems, ModuleId } from "./receptionist/nav-config";
 import { PortalStyles } from "./receptionist/portal-styles";
 import { useReceptionistData } from "./receptionist/data-context";
@@ -86,8 +86,8 @@ function TopbarNotifications() {
       {open && (
         <div
           style={{
-            position: "absolute", right: 0, top: 40, width: 300, background: "#fff",
-            border: "1px solid var(--rp-line)", borderRadius: 12, boxShadow: "0 12px 28px rgba(20,38,33,0.12)",
+            position: "absolute", right: 0, top: 40, width: 300, background: "var(--rp-panel)",
+            border: "1px solid var(--rp-line)", borderRadius: 12, boxShadow: "0 12px 28px rgb(var(--qlyno-ink-900) / 0.12)",
             padding: 10, zIndex: 30, maxHeight: 320, overflowY: "auto",
           }}
         >
@@ -193,6 +193,9 @@ function PortalShell({ moduleId, initialSearchQuery = "" }: { moduleId: ModuleId
             )}
             <button type="button" className="btn-secondary text-xs" onClick={() => router.push("/doctor/dashboard")}>
               <Stethoscope size={14} /> Doctor Module
+            </button>
+            <button type="button" className="btn-secondary text-xs" onClick={() => router.push("/sign-in")}>
+              <LogOut size={14} /> Sign Out
             </button>
             <form className="rp-topbar-search" onSubmit={(event) => event.preventDefault()}>
               <SearchIcon size={15} className="rp-input-icon" />

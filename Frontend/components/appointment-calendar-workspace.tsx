@@ -47,6 +47,13 @@ const viewOptions = [
 ] as const;
 
 type CalendarViewMode = (typeof viewOptions)[number]["value"];
+type CalendarSettingsPanel = "calendarTiming" | "staffNotifications" | "visitTiming" | "patientNotifications" | null;
+const settingsPanelTitles: Record<Exclude<CalendarSettingsPanel, null>, string> = {
+  calendarTiming: "Calendar Timings",
+  staffNotifications: "Doctor & Staff Notifications",
+  visitTiming: "Doctor Visit Timings",
+  patientNotifications: "Patient Notifications",
+};
 
 function dateAtNoon(date: string) {
   return new Date(`${date}T12:00:00`);
@@ -115,8 +122,8 @@ function minutesToTime(totalMinutes: number) {
   return `${displayHours}:${String(minutes).padStart(2, "0")} ${suffix}`;
 }
 
-function durationRows(duration: number) {
-  return Math.max(1, Math.ceil(duration / 15));
+function durationRows(duration: number, slotInterval: number) {
+  return Math.max(1, Math.ceil(duration / slotInterval));
 }
 
 export function AppointmentCalendarWorkspace() {
@@ -131,11 +138,26 @@ export function AppointmentCalendarWorkspace() {
   const [showForm, setShowForm] = useState(false);
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsPanel, setSettingsPanel] = useState<CalendarSettingsPanel>(null);
   const [modernTheme, setModernTheme] = useState(true);
   const [showCancelled, setShowCancelled] = useState(true);
   const [selectedConsultation, setSelectedConsultation] = useState<Appointment | null>(null);
   const [isLoadingCalendar, setIsLoadingCalendar] = useState(true);
   const [syncMessage, setSyncMessage] = useState("");
+  const [appointmentFormError, setAppointmentFormError] = useState("");
+  const [calendarSettings, setCalendarSettings] = useState({
+    calendarStartTime: "8:00 AM",
+    calendarEndTime: "6:00 PM",
+    slotInterval: "15",
+    visitStartTime: "9:00 AM",
+    visitEndTime: "5:00 PM",
+    staffSms: true,
+    staffEmail: true,
+    staffReminders: true,
+    patientSms: true,
+    patientEmail: true,
+    patientReminderHours: "24",
+  });
   const [form, setForm] = useState({
     patientId: "",
     doctorId: "",
@@ -209,6 +231,11 @@ export function AppointmentCalendarWorkspace() {
     engaged: selectedDateAppointments.filter((appointment) => appointment.status === "In Consultation").length,
     done: selectedDateAppointments.filter((appointment) => appointment.status === "Completed").length,
   };
+  const slotInterval = Number(calendarSettings.slotInterval) || 15;
+  const configuredStartMinutes = timeToMinutes(calendarSettings.calendarStartTime);
+  const configuredEndMinutes = timeToMinutes(calendarSettings.calendarEndTime);
+  const scheduleStartMinutes = configuredEndMinutes > configuredStartMinutes ? configuredStartMinutes : 8 * 60;
+  const scheduleEndMinutes = configuredEndMinutes > configuredStartMinutes ? configuredEndMinutes : 18 * 60;
   const gridClassName =
     viewMode === "day"
       ? "min-w-[640px] grid-cols-[64px_minmax(480px,1fr)]"
@@ -225,13 +252,14 @@ export function AppointmentCalendarWorkspace() {
 
   function resetAppointmentForm() {
     setEditingAppointmentId(null);
+    setAppointmentFormError("");
     setForm((prev) => ({
       ...prev,
       patientId: contextPatients[0]?.id ?? prev.patientId,
       doctorId: appointmentDoctors[0]?.id ?? prev.doctorId,
       locationId: contextLocations[0]?.id ?? prev.locationId,
       date: selectedDate,
-      time: "09:00 AM",
+      time: calendarSettings.visitStartTime,
       durationMins: "20",
       type: "In-Person",
       reason: "",
@@ -240,6 +268,7 @@ export function AppointmentCalendarWorkspace() {
 
   function openAppointmentForm(date = selectedDate, time = "09:00 AM") {
     setEditingAppointmentId(null);
+    setAppointmentFormError("");
     setSelectedDate(date);
     setForm((prev) => ({
       ...prev,
@@ -254,6 +283,7 @@ export function AppointmentCalendarWorkspace() {
 
   function openEditAppointment(appointment: Appointment) {
     setEditingAppointmentId(appointment.id);
+    setAppointmentFormError("");
     setSelectedConsultation(null);
     setSelectedDate(appointment.date);
     setForm({
@@ -278,13 +308,36 @@ export function AppointmentCalendarWorkspace() {
     setSelectedDate((current) => addDays(current, viewMode === "day" ? direction : direction * 6));
   }
 
-  function showSettingsMessage(message: string) {
-    setSyncMessage(message);
+  function openSettingsPanel(panel: Exclude<CalendarSettingsPanel, null>) {
+    setSettingsPanel(panel);
     setSettingsOpen(false);
   }
 
+  function saveCalendarSettings() {
+    setSettingsPanel(null);
+    setSyncMessage("Appointment calendar settings updated.");
+  }
+
+  function printCalendar() {
+    window.print();
+    setSyncMessage("Print dialog opened for the appointment calendar.");
+  }
+
   async function saveAppointment() {
-    if (!canScheduleAppointment || !form.reason.trim()) return;
+    setAppointmentFormError("");
+    if (!canScheduleAppointment) {
+      setAppointmentFormError("Patient, doctor and location data must be available before scheduling.");
+      return;
+    }
+    if (!form.patientId || !form.doctorId || !form.locationId || !form.date || !form.time.trim() || !form.reason.trim()) {
+      setAppointmentFormError("Fill patient, doctor, location, date, time and reason before scheduling.");
+      return;
+    }
+    if ((Number(form.durationMins) || 0) < 1) {
+      setAppointmentFormError("Appointment duration must be greater than zero.");
+      return;
+    }
+
     const nextAppointment: Appointment = {
       id: editingAppointmentId ?? `local-apt-${Date.now()}`,
       patientId: form.patientId,
@@ -355,7 +408,10 @@ export function AppointmentCalendarWorkspace() {
     setSelectedConsultation(null);
   }
 
-  const slots = Array.from({ length: 41 }, (_, index) => 8 * 60 + index * 15);
+  const slots = Array.from(
+    { length: Math.floor((scheduleEndMinutes - scheduleStartMinutes) / slotInterval) + 1 },
+    (_, index) => scheduleStartMinutes + index * slotInterval
+  );
 
   if (isLoadingCalendar) {
     return (
@@ -459,8 +515,7 @@ export function AppointmentCalendarWorkspace() {
           </div>
           <div className="px-5 py-4">
             <p className="mb-7 text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">Categories</p>
-            <p className="text-center text-sm text-ink-muted">No categories available.</p>
-            <button className="mt-2 w-full text-center text-sm font-semibold text-brand-700">Add categories</button>
+            <p className="text-center text-sm text-ink-muted">Categories are not required for this appointment calendar.</p>
           </div>
         </aside>
 
@@ -504,7 +559,7 @@ export function AppointmentCalendarWorkspace() {
                 </div>
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2">
-                <button type="button" className="btn-secondary" aria-label="Print calendar">
+                <button type="button" onClick={printCalendar} className="btn-secondary" aria-label="Print calendar">
                   <Printer size={16} />
                 </button>
                 <div className="relative">
@@ -519,15 +574,15 @@ export function AppointmentCalendarWorkspace() {
                   {settingsOpen && (
                     <div className="absolute right-0 top-full z-40 mt-1 w-[364px] overflow-hidden rounded-md border border-line bg-white py-1 text-sm shadow-lift">
                       {[
-                        ["Modify calendar timings", "Calendar timing settings are ready to connect."],
-                        ["Add/ edit doctor or staff, modify SMS/ email for doctors/staff", "Doctor and staff notification settings are ready to connect."],
-                        ["Modify doctor visit timings", "Doctor visit timing settings are ready to connect."],
-                        ["Modify SMS/ Email for patients", "Patient notification settings are ready to connect."],
-                      ].map(([label, message]) => (
+                        ["Modify calendar timings", "calendarTiming"],
+                        ["Add/ edit doctor or staff, modify SMS/ email for doctors/staff", "staffNotifications"],
+                        ["Modify doctor visit timings", "visitTiming"],
+                        ["Modify SMS/ Email for patients", "patientNotifications"],
+                      ].map(([label, panel]) => (
                         <button
                           key={label}
                           type="button"
-                          onClick={() => showSettingsMessage(message)}
+                          onClick={() => openSettingsPanel(panel as Exclude<CalendarSettingsPanel, null>)}
                           className="block w-full px-5 py-2.5 text-left leading-5 text-ink-muted hover:bg-paper hover:text-ink"
                         >
                           {label}
@@ -535,7 +590,13 @@ export function AppointmentCalendarWorkspace() {
                       ))}
                       <button
                         type="button"
-                        onClick={() => setModernTheme((value) => !value)}
+                        onClick={() => {
+                          setModernTheme((value) => {
+                            const next = !value;
+                            setSyncMessage(`Modern theme ${next ? "enabled" : "disabled"}.`);
+                            return next;
+                          });
+                        }}
                         className="grid w-full grid-cols-[1fr_76px] items-center bg-clay-50 px-5 py-2.5 text-left text-ink hover:bg-clay-100"
                       >
                         <span>Modern Theme</span>
@@ -547,7 +608,13 @@ export function AppointmentCalendarWorkspace() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setShowCancelled((value) => !value)}
+                        onClick={() => {
+                          setShowCancelled((value) => {
+                            const next = !value;
+                            setSyncMessage(`${next ? "Showing" : "Hiding"} cancelled appointments.`);
+                            return next;
+                          });
+                        }}
                         className="grid w-full grid-cols-[1fr_76px] items-center px-5 py-2.5 text-left text-ink-muted hover:bg-paper hover:text-ink"
                       >
                         <span>Show Cancelled Appointments</span>
@@ -687,7 +754,7 @@ export function AppointmentCalendarWorkspace() {
                         {visibleAppointments
                           .filter((appointment) => appointment.date === date)
                           .map((appointment) => {
-                            const top = Math.max(0, ((timeToMinutes(appointment.time) - slots[0]) / 15) * 40);
+                            const top = Math.max(0, ((timeToMinutes(appointment.time) - slots[0]) / slotInterval) * 40);
                             const patient = patientById.get(appointment.patientId) ?? getPatient(appointment.patientId);
                             return (
                               <button
@@ -704,7 +771,7 @@ export function AppointmentCalendarWorkspace() {
                                         ? "border-ink-faint bg-paper text-ink-muted"
                                         : "border-brand-100 bg-brand-50 text-brand-800"
                                 )}
-                                style={{ top, height: durationRows(appointment.durationMins) * 40 - 4 }}
+                                style={{ top, height: durationRows(appointment.durationMins, slotInterval) * 40 - 4 }}
                               >
                                 <span className="block truncate font-semibold">{patient?.name ?? "Patient"}</span>
                                 <span className="block truncate font-mono text-[11px] opacity-80">{appointment.time}</span>
@@ -802,7 +869,7 @@ export function AppointmentCalendarWorkspace() {
             <button
               type="button"
               onClick={saveAppointment}
-              disabled={!canScheduleAppointment || !form.reason.trim()}
+              disabled={!canScheduleAppointment}
               className="btn-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
               {editingAppointmentId ? "Save Changes" : "Schedule Appointment"}
@@ -821,6 +888,11 @@ export function AppointmentCalendarWorkspace() {
         }
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {appointmentFormError && (
+            <div className="sm:col-span-2 rounded-md border border-alert-100 bg-alert-50 px-3 py-2 text-sm text-alert-600">
+              {appointmentFormError}
+            </div>
+          )}
           <Field label="Patient" className="sm:col-span-2">
             <select
               value={form.patientId}
@@ -908,6 +980,132 @@ export function AppointmentCalendarWorkspace() {
             />
           </Field>
         </div>
+      </Modal>
+
+      <Modal
+        open={settingsPanel !== null}
+        title={settingsPanel ? settingsPanelTitles[settingsPanel] : "Calendar Settings"}
+        eyebrow="Appointment settings"
+        onClose={() => setSettingsPanel(null)}
+        footer={
+          <>
+            <button type="button" onClick={saveCalendarSettings} className="btn-primary">
+              Save Settings
+            </button>
+            <button type="button" onClick={() => setSettingsPanel(null)} className="btn-secondary">
+              Cancel
+            </button>
+          </>
+        }
+      >
+        {settingsPanel === "calendarTiming" && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Calendar starts">
+              <TimePicker
+                value={calendarSettings.calendarStartTime}
+                onChange={(value) => setCalendarSettings((prev) => ({ ...prev, calendarStartTime: value }))}
+                format="12h"
+                ariaLabel="Calendar start time"
+              />
+            </Field>
+            <Field label="Calendar ends">
+              <TimePicker
+                value={calendarSettings.calendarEndTime}
+                onChange={(value) => setCalendarSettings((prev) => ({ ...prev, calendarEndTime: value }))}
+                format="12h"
+                ariaLabel="Calendar end time"
+              />
+            </Field>
+            <Field label="Slot interval" className="sm:col-span-2">
+              <select
+                value={calendarSettings.slotInterval}
+                onChange={(event) => setCalendarSettings((prev) => ({ ...prev, slotInterval: event.target.value }))}
+                className="input-field"
+              >
+                <option value="10">10 minutes</option>
+                <option value="15">15 minutes</option>
+                <option value="20">20 minutes</option>
+                <option value="30">30 minutes</option>
+              </select>
+            </Field>
+          </div>
+        )}
+
+        {settingsPanel === "staffNotifications" && (
+          <div className="space-y-3">
+            {[
+              ["staffSms", "Send SMS updates to doctor and staff"],
+              ["staffEmail", "Send email updates to doctor and staff"],
+              ["staffReminders", "Send schedule reminders before visits"],
+            ].map(([key, label]) => (
+              <label key={key} className="flex items-center justify-between rounded-md border border-line px-3 py-2 text-sm font-medium text-ink-soft">
+                <span>{label}</span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(calendarSettings[key as "staffSms" | "staffEmail" | "staffReminders"])}
+                  onChange={(event) => setCalendarSettings((prev) => ({ ...prev, [key]: event.target.checked }))}
+                  className="h-4 w-4 accent-brand-500"
+                />
+              </label>
+            ))}
+          </div>
+        )}
+
+        {settingsPanel === "visitTiming" && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Visit starts">
+              <TimePicker
+                value={calendarSettings.visitStartTime}
+                onChange={(value) => setCalendarSettings((prev) => ({ ...prev, visitStartTime: value }))}
+                format="12h"
+                ariaLabel="Doctor visit start time"
+              />
+            </Field>
+            <Field label="Visit ends">
+              <TimePicker
+                value={calendarSettings.visitEndTime}
+                onChange={(value) => setCalendarSettings((prev) => ({ ...prev, visitEndTime: value }))}
+                format="12h"
+                ariaLabel="Doctor visit end time"
+              />
+            </Field>
+          </div>
+        )}
+
+        {settingsPanel === "patientNotifications" && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="flex items-center justify-between rounded-md border border-line px-3 py-2 text-sm font-medium text-ink-soft sm:col-span-2">
+              <span>Send SMS updates to patients</span>
+              <input
+                type="checkbox"
+                checked={calendarSettings.patientSms}
+                onChange={(event) => setCalendarSettings((prev) => ({ ...prev, patientSms: event.target.checked }))}
+                className="h-4 w-4 accent-brand-500"
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-md border border-line px-3 py-2 text-sm font-medium text-ink-soft sm:col-span-2">
+              <span>Send email updates to patients</span>
+              <input
+                type="checkbox"
+                checked={calendarSettings.patientEmail}
+                onChange={(event) => setCalendarSettings((prev) => ({ ...prev, patientEmail: event.target.checked }))}
+                className="h-4 w-4 accent-brand-500"
+              />
+            </label>
+            <Field label="Reminder before appointment" className="sm:col-span-2">
+              <select
+                value={calendarSettings.patientReminderHours}
+                onChange={(event) => setCalendarSettings((prev) => ({ ...prev, patientReminderHours: event.target.value }))}
+                className="input-field"
+              >
+                <option value="2">2 hours</option>
+                <option value="6">6 hours</option>
+                <option value="24">24 hours</option>
+                <option value="48">48 hours</option>
+              </select>
+            </Field>
+          </div>
+        )}
       </Modal>
 
       <Modal

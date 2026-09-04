@@ -213,7 +213,7 @@ export function TimePicker({
       <button
         type="button"
         disabled={disabled}
-        className="grid w-full grid-cols-[34px_1fr_20px] items-center gap-2 rounded-md border border-line bg-white px-2.5 py-2 text-left shadow-[0_1px_2px_rgba(22,33,29,0.04),inset_0_1px_0_rgba(255,255,255,0.86)] transition-colors hover:border-brand-100 hover:bg-brand-50/50 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 disabled:opacity-60"
+        className="grid w-full grid-cols-[34px_1fr_20px] items-center gap-2 rounded-md border border-line bg-white px-2.5 py-2 text-left shadow-card transition-colors hover:border-brand-100 hover:bg-brand-50/50 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 disabled:opacity-60"
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-50 text-brand-700">
           <Clock9 size={16} />

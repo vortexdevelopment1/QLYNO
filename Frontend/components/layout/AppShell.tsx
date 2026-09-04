@@ -4,7 +4,7 @@ import { ReactNode, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { X, Stethoscope } from "lucide-react";
+import { LogOut, X, Stethoscope } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { doctorWorkspaceNav, clinicOperationsNav, staffPortalNav } from "./nav-config";
@@ -16,9 +16,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { workContext } = useMode();
   const isReceptionistPortal = pathname?.startsWith("/receptionist");
+  const isAuthPage = pathname?.startsWith("/sign-in");
+  const isImportedStaffPortal = pathname?.startsWith("/hospital-admin") || pathname?.startsWith("/billing-staff");
   const mobileNavItems = [...doctorWorkspaceNav, ...(workContext === "clinic" ? clinicOperationsNav : []), ...staffPortalNav];
 
-  if (isReceptionistPortal) {
+  if (isReceptionistPortal || isAuthPage || isImportedStaffPortal) {
     return <>{children}</>;
   }
 
@@ -58,6 +60,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   </Link>
                 );
               })}
+              <Link href="/sign-in" onClick={() => setMobileOpen(false)} className="nav-link">
+                <LogOut size={16} />
+                Sign Out
+              </Link>
             </nav>
           </div>
         </div>

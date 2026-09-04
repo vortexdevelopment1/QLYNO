@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  color: rgb(var(--qlyno-ink));
+  background: rgb(var(--qlyno-paper));
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--qlyno-brand-500));
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-width: thin;
+}
+
+/* Utility to hide scrollbars while maintaining scroll functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

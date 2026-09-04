@@ -2,19 +2,19 @@
 
 const portalStyles = `
       .rp-root {
-        --rp-ink: #16211D;
-        --rp-paper: #F5F6F1;
-        --rp-panel: #FFFFFF;
-        --rp-line: #E4E3DA;
-        --rp-pine: #1F5F52;
-        --rp-pine-dark: #143C36;
-        --rp-pine-soft: #EAF2EF;
-        --rp-coral: #A83A26;
-        --rp-coral-soft: #FBEAE6;
-        --rp-amber: #AD6329;
-        --rp-amber-soft: #FBF0E7;
-        --rp-slate: #667169;
-        --rp-slate-soft: #F5F6F1;
+        --rp-ink: rgb(var(--qlyno-ink));
+        --rp-paper: rgb(var(--qlyno-paper));
+        --rp-panel: rgb(var(--qlyno-surface));
+        --rp-line: rgb(var(--qlyno-line));
+        --rp-pine: rgb(var(--qlyno-brand-600));
+        --rp-pine-dark: rgb(var(--qlyno-brand-800));
+        --rp-pine-soft: rgb(var(--qlyno-brand-50));
+        --rp-coral: rgb(var(--qlyno-alert-500));
+        --rp-coral-soft: rgb(var(--qlyno-alert-50));
+        --rp-amber: rgb(var(--qlyno-warning-500));
+        --rp-amber-soft: rgb(var(--qlyno-warning-50));
+        --rp-slate: rgb(var(--qlyno-ink-500));
+        --rp-slate-soft: rgb(var(--qlyno-ink-50));
         font-family: 'IBM Plex Sans', system-ui, sans-serif;
         background: var(--rp-paper);
         color: var(--rp-ink);
@@ -22,7 +22,7 @@ const portalStyles = `
       }
 
       .rp-root h1, .rp-root h2, .rp-root h3, .rp-h1, .rp-h2, .rp-h3, .rp-logo, .rp-stat-value {
-        font-family: Fraunces, Georgia, serif;
+        font-family: 'IBM Plex Sans', system-ui, sans-serif;
       }
 
       .rp-mono, .rp-ticker-chip span:first-child {
@@ -57,13 +57,13 @@ const portalStyles = `
         width: 100%; text-align: left;
         padding: 9px 11px; border-radius: 8px;
         font-size: 13px; font-weight: 500;
-        color: #3A443F;
+        color: var(--rp-ink);
         background: transparent; border: none; cursor: pointer;
         margin-bottom: 2px;
         transition: background 0.15s ease, color 0.15s ease;
       }
-      .rp-nav-item:hover { background: var(--rp-pine-soft); color: #143C36; }
-      .rp-nav-item.active { background: var(--rp-pine); color: #fff; box-shadow: 0 1px 2px rgba(22,33,29,0.05), 0 10px 24px rgba(22,33,29,0.05); }
+      .rp-nav-item:hover { background: var(--rp-pine-soft); color: var(--rp-pine-dark); }
+      .rp-nav-item.active { background: var(--rp-pine-soft); color: var(--rp-pine-dark); border-left: 4px solid var(--rp-pine); box-shadow: 0 1px 2px rgb(var(--qlyno-ink-900) / 0.04); }
       .rp-nav-number { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; opacity: 0.55; width: 16px; flex-shrink: 0; }
       .rp-sidebar-footer { padding: 14px 20px; border-top: 1px solid var(--rp-line); font-size: 11.5px; color: var(--rp-slate); }
 
@@ -73,7 +73,7 @@ const portalStyles = `
         display: flex; align-items: center; gap: 12px;
         min-height: 64px;
         padding: 12px 28px;
-        background: rgba(255,255,255,0.86);
+        background: rgba(255,255,255,0.95);
         backdrop-filter: blur(16px);
         border-bottom: 1px solid var(--rp-line);
       }
@@ -85,7 +85,7 @@ const portalStyles = `
       /* ---- Typography ---- */
       .rp-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--rp-slate); }
       .rp-h1 { font-size: 24px; font-weight: 600; margin-top: 4px; letter-spacing: 0; }
-      .rp-h2 { font-family: Fraunces, Georgia, serif; font-size: 20px; font-weight: 500; margin-bottom: 12px; color: var(--rp-ink); }
+      .rp-h2 { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 12px; color: var(--rp-ink); }
       .rp-h3 { font-size: 12.5px; font-weight: 600; color: var(--rp-slate); text-transform: uppercase; letter-spacing: 0.04em; }
       .rp-sub { font-size: 13.5px; color: var(--rp-slate); margin-top: 4px; line-height: 1.5; }
       .rp-label { display: block; font-size: 12.5px; font-weight: 500; color: var(--rp-ink); margin-bottom: 6px; }
@@ -98,8 +98,8 @@ const portalStyles = `
         border-radius: 14px;
         padding: 20px;
       }
-      .rp-card-alert { border-color: #F2C6B9; background: var(--rp-coral-soft); }
-      .rp-card-success { border-color: #CBE3D5; background: #EAF3EE; }
+      .rp-card-alert { border-color: rgb(var(--qlyno-alert-100)); background: var(--rp-coral-soft); }
+      .rp-card-success { border-color: rgb(var(--qlyno-success-100)); background: rgb(var(--qlyno-success-50)); }
 
       /* ---- Ticker (signature element) ---- */
       .rp-ticker { display: flex; align-items: center; gap: 18px; padding: 14px 20px; flex-wrap: wrap; }
@@ -163,7 +163,7 @@ const portalStyles = `
       .rp-icon-btn {
         display: inline-flex; align-items: center; justify-content: center;
         width: 26px; height: 26px; border-radius: 7px;
-        border: 1px solid var(--rp-line); background: #fff; color: var(--rp-slate);
+        border: 1px solid var(--rp-line); background: var(--rp-panel); color: var(--rp-slate);
         cursor: pointer;
       }
       .rp-icon-btn:hover { background: var(--rp-pine-soft); color: var(--rp-pine-dark); border-color: transparent; }
@@ -172,7 +172,7 @@ const portalStyles = `
       /* ---- Inputs ---- */
       .rp-input {
         width: 100%; border: 1px solid var(--rp-line); border-radius: 9px;
-        padding: 9px 12px; font-size: 13.5px; background: #fff; color: var(--rp-ink);
+        padding: 9px 12px; font-size: 13.5px; background: var(--rp-panel); color: var(--rp-ink);
         outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease;
       }
       .rp-input:focus { border-color: var(--rp-pine); box-shadow: 0 0 0 3px var(--rp-pine-soft); }
@@ -224,15 +224,15 @@ const portalStyles = `
       @media (max-width: 480px) { .rp-quick-grid { grid-template-columns: 1fr; } }
       .rp-quick-card {
         display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
-        background: #fff; border: 1px solid var(--rp-line); border-radius: 8px;
+        background: var(--rp-panel); border: 1px solid var(--rp-line); border-radius: 8px;
         padding: 18px; text-align: left; cursor: pointer;
         transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
       }
-      .rp-quick-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(20,38,33,0.07); border-color: transparent; }
+      .rp-quick-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgb(var(--qlyno-ink-900) / 0.07); border-color: transparent; }
       .rp-quick-icon { display: inline-flex; padding: 9px; border-radius: 10px; }
       .rp-quick-icon-pine { background: var(--rp-pine-soft); color: var(--rp-pine-dark); }
       .rp-quick-icon-coral { background: var(--rp-coral-soft); color: var(--rp-coral); }
-      .rp-quick-label { font-family: Fraunces, Georgia, serif; font-size: 15px; font-weight: 500; }
+      .rp-quick-label { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 15px; font-weight: 700; }
       .rp-quick-desc { font-size: 12px; color: var(--rp-slate); line-height: 1.4; }
 
       /* ---- Mobile sidebar ---- */

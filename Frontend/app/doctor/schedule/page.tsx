@@ -7,13 +7,29 @@ import { ConflictNotice, ShiftCard, WorkplaceBadge } from "@/components/doctor-w
 import { Card, Field, Modal, Pill, SectionHeading, TimePicker, SectionSkeleton, Skeleton, TableSkeleton } from "@/components/ui";
 import { useDoctorWorkflow } from "@/lib/doctor-workflow-context";
 import { DoctorShift, ShiftType, shiftTypeLabel } from "@/lib/doctor-workflow-types";
-import { CURRENT_DATE_ISO, CURRENT_DATE_LABEL } from "@/lib/app-time";
+import { addDaysToISO, CURRENT_DATE_ISO, getLocalDateISO } from "@/lib/app-time";
 import { currentDoctor } from "@/lib/mock-data";
 import { ApiSyncSkippedError, createBackendShift, updateBackendShiftStatus } from "@/lib/api-client";
 
 const TODAY = CURRENT_DATE_ISO;
 const views = ["Day", "Week", "Month"] as const;
 type ViewMode = (typeof views)[number];
+
+const fullDateFormatter = new Intl.DateTimeFormat("en-US", {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
+const compactDateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+const monthFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "long",
+  year: "numeric",
+});
 
 const shiftTypes: ShiftType[] = [
   "clinic_opd",
@@ -28,6 +44,43 @@ const shiftTypes: ShiftType[] = [
 function minutes(time: string) {
   const [hours, mins] = time.split(":").map(Number);
   return hours * 60 + mins;
+}
+
+function dateFromISO(date: string) {
+  return new Date(`${date}T12:00:00`);
+}
+
+function addMonthsToISO(date: string, months: number) {
+  const next = dateFromISO(date);
+  const originalDay = next.getDate();
+  next.setDate(1);
+  next.setMonth(next.getMonth() + months);
+  const daysInTargetMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+  next.setDate(Math.min(originalDay, daysInTargetMonth));
+  return getLocalDateISO(next);
+}
+
+function getPeriodBounds(anchorDate: string, view: ViewMode) {
+  if (view === "Day") return { start: anchorDate, end: anchorDate };
+
+  const anchor = dateFromISO(anchorDate);
+  if (view === "Week") {
+    anchor.setDate(anchor.getDate() - anchor.getDay());
+    const start = getLocalDateISO(anchor);
+    return { start, end: addDaysToISO(start, 6) };
+  }
+
+  const start = getLocalDateISO(new Date(anchor.getFullYear(), anchor.getMonth(), 1, 12));
+  const end = getLocalDateISO(new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0, 12));
+  return { start, end };
+}
+
+function formatPeriodLabel(anchorDate: string, view: ViewMode, bounds: { start: string; end: string }) {
+  if (view === "Day") return fullDateFormatter.format(dateFromISO(anchorDate));
+  if (view === "Week") {
+    return `${compactDateFormatter.format(dateFromISO(bounds.start))} - ${compactDateFormatter.format(dateFromISO(bounds.end))}`;
+  }
+  return monthFormatter.format(dateFromISO(anchorDate));
 }
 
 function getConflicts(shifts: DoctorShift[]) {
@@ -46,6 +99,7 @@ function getConflicts(shifts: DoctorShift[]) {
 export default function DoctorSchedulePage() {
   const { addShift, backendDoctorId, completeShift, getWorkplace, isLoadingWorkflow, shifts, startShift, updateShiftStatus, workplaces } = useDoctorWorkflow();
   const [view, setView] = useState<ViewMode>("Day");
+  const [selectedDate, setSelectedDate] = useState(TODAY);
   const [workplaceFilter, setWorkplaceFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
@@ -65,7 +119,9 @@ export default function DoctorSchedulePage() {
     recurrenceRule: "",
   });
 
-  const visibleShifts = useMemo(
+  const period = useMemo(() => getPeriodBounds(selectedDate, view), [selectedDate, view]);
+  const periodLabel = useMemo(() => formatPeriodLabel(selectedDate, view, period), [period, selectedDate, view]);
+  const filteredShifts = useMemo(
     () =>
       shifts
         .filter((shift) => workplaceFilter === "all" || shift.workplaceId === workplaceFilter)
@@ -73,9 +129,13 @@ export default function DoctorSchedulePage() {
         .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`)),
     [shifts, typeFilter, workplaceFilter]
   );
+  const visibleShifts = useMemo(
+    () => filteredShifts.filter((shift) => shift.date >= period.start && shift.date <= period.end),
+    [filteredShifts, period]
+  );
   const conflicts = useMemo(() => getConflicts(visibleShifts), [visibleShifts]);
   const selectedShift = selectedShiftId ? shifts.find((shift) => shift.id === selectedShiftId) : undefined;
-  const todayShifts = visibleShifts.filter((shift) => shift.date === TODAY);
+  const todayShifts = filteredShifts.filter((shift) => shift.date === TODAY);
 
   useEffect(() => {
     setDraft((prev) => {
@@ -124,6 +184,13 @@ export default function DoctorSchedulePage() {
   function openShift(id: string) {
     setSelectedShiftId(id);
     setModal("shift");
+  }
+
+  function movePeriod(direction: -1 | 1) {
+    setSelectedDate((current) => {
+      if (view === "Month") return addMonthsToISO(current, direction);
+      return addDaysToISO(current, direction * (view === "Week" ? 7 : 1));
+    });
   }
 
   async function persistShiftStatus(id: string, status: "active" | "completed" | "cancelled") {
@@ -196,6 +263,7 @@ export default function DoctorSchedulePage() {
           <button
             type="button"
             onClick={() => {
+              setDraft((prev) => ({ ...prev, date: selectedDate }));
               setFormError("");
               setModal("add");
             }}
@@ -221,11 +289,21 @@ export default function DoctorSchedulePage() {
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button className="flex h-9 w-9 items-center justify-center rounded-md border border-line text-ink-muted hover:bg-paper hover:text-ink" type="button" aria-label="Previous period">
+            <button
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-line text-ink-muted hover:bg-paper hover:text-ink"
+              type="button"
+              aria-label="Previous period"
+              onClick={() => movePeriod(-1)}
+            >
               <ChevronLeft size={15} />
             </button>
-            <Pill tone="brand">{CURRENT_DATE_LABEL}</Pill>
-            <button className="flex h-9 w-9 items-center justify-center rounded-md border border-line text-ink-muted hover:bg-paper hover:text-ink" type="button" aria-label="Next period">
+            <Pill tone="brand">{periodLabel}</Pill>
+            <button
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-line text-ink-muted hover:bg-paper hover:text-ink"
+              type="button"
+              aria-label="Next period"
+              onClick={() => movePeriod(1)}
+            >
               <ChevronRight size={15} />
             </button>
             <select value={workplaceFilter} onChange={(e) => setWorkplaceFilter(e.target.value)} className="input-field h-9 w-52">
@@ -283,7 +361,7 @@ export default function DoctorSchedulePage() {
                 </div>
               );
             })}
-            {visibleShifts.length === 0 && <p className="px-5 py-10 text-center text-sm text-ink-muted">No shifts match this filter.</p>}
+            {visibleShifts.length === 0 && <p className="px-5 py-10 text-center text-sm text-ink-muted">No shifts match this date or filter.</p>}
           </div>
         </Card>
 
@@ -303,6 +381,7 @@ export default function DoctorSchedulePage() {
               <button
                 type="button"
                 onClick={() => {
+                  setDraft((prev) => ({ ...prev, date: selectedDate, shiftType: "clinic_opd", bookingEnabled: true }));
                   setFormError("");
                   setModal("add");
                 }}
@@ -313,7 +392,7 @@ export default function DoctorSchedulePage() {
               <button
                 type="button"
                 onClick={() => {
-                  setDraft((prev) => ({ ...prev, shiftType: "blocked", bookingEnabled: false }));
+                  setDraft((prev) => ({ ...prev, date: selectedDate, shiftType: "blocked", bookingEnabled: false }));
                   setFormError("");
                   setModal("add");
                 }}
@@ -324,7 +403,7 @@ export default function DoctorSchedulePage() {
               <button
                 type="button"
                 onClick={() => {
-                  setDraft((prev) => ({ ...prev, shiftType: "leave", startTime: "00:00", endTime: "23:59", bookingEnabled: false }));
+                  setDraft((prev) => ({ ...prev, date: selectedDate, shiftType: "leave", startTime: "00:00", endTime: "23:59", bookingEnabled: false }));
                   setFormError("");
                   setModal("add");
                 }}

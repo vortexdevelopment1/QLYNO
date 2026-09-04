@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AlertTriangle, ArrowLeft, Bell, Building2, FileWarning, Hospital, ListTodo, Menu, Siren } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Bell, Building2, FileWarning, Hospital, ListTodo, LogOut, Menu, Siren } from "lucide-react";
 import GlobalSearch from "./GlobalSearch";
 import QuickActions from "./QuickActions";
 import { allNavItems } from "./nav-config";
@@ -156,6 +156,9 @@ export default function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
           )}
         </div>
         <QuickActions />
+        <button type="button" onClick={() => router.push("/sign-in")} className="btn-secondary hidden text-xs sm:inline-flex">
+          <LogOut size={14} /> Sign Out
+        </button>
       </div>
     </header>
   );
