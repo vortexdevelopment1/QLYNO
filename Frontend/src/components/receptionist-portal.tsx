@@ -7,6 +7,7 @@ import { navItems, ModuleId } from "./receptionist/nav-config";
 import { PortalStyles } from "./receptionist/portal-styles";
 import { useReceptionistData } from "./receptionist/data-context";
 import { Input, Badge } from "./receptionist/ui";
+import { signOutToRoot } from "@/lib/client-session";
 
 import { Dashboard } from "./receptionist/Dashboard";
 import { PatientDirectory } from "./receptionist/PatientDirectory";
@@ -194,7 +195,7 @@ function PortalShell({ moduleId, initialSearchQuery = "" }: { moduleId: ModuleId
             <button type="button" className="btn-secondary text-xs" onClick={() => router.push("/doctor/dashboard")}>
               <Stethoscope size={14} /> Doctor Module
             </button>
-            <button type="button" className="btn-secondary text-xs" onClick={() => router.push("/sign-in")}>
+            <button type="button" className="btn-secondary text-xs" onClick={() => signOutToRoot(router.push)}>
               <LogOut size={14} /> Sign Out
             </button>
             <form className="rp-topbar-search" onSubmit={(event) => event.preventDefault()}>

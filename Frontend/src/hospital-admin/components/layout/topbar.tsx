@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AppUserRole } from "@/hospital-admin/lib/types/nursing-module";
 import { NURSING_STORAGE_KEY } from "@/hospital-admin/store/provider";
 import {
@@ -22,6 +22,7 @@ import {
   FileBarChart,
   FileText,
   HeartPulse,
+  LogOut,
   Menu,
   Pill,
   Plus,
@@ -61,11 +62,13 @@ import { getWorkspaceMetaForRole } from "@/hospital-admin/components/layout/nav-
 import { SidebarNav } from "@/hospital-admin/components/layout/sidebar";
 import { getNotificationsForRole } from "@/hospital-admin/lib/mock-data/notifications-extended";
 import { GlobalSearch } from "@/hospital-admin/components/layout/global-search";
+import { signOutToRoot } from "@/lib/client-session";
 
 export function Topbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const reduxRole = useSelector((state: RootState) => state.nursingOperations.currentRole);
   const [persistedRole, setPersistedRole] = useState<AppUserRole | null>(() => {
     if (typeof window !== "undefined") {
@@ -511,6 +514,17 @@ export function Topbar() {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => signOutToRoot(router.push)}
+            className="hidden h-9 gap-1.5 text-xs font-semibold sm:inline-flex"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Sign Out</span>
+          </Button>
         </div>
       </header>
     </TooltipProvider>

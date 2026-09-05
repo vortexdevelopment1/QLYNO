@@ -60,7 +60,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   </Link>
                 );
               })}
-              <Link href="/sign-in" onClick={() => setMobileOpen(false)} className="nav-link">
+              <Link href="/" onClick={() => setMobileOpen(false)} className="nav-link">
                 <LogOut size={16} />
                 Sign Out
               </Link>

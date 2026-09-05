@@ -2,12 +2,14 @@
 
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 import { useApp } from "@/billing-staff/context/AppContext";
 import { BillingScope, SCOPE_LABELS } from "@/billing-staff/types";
 import { SearchBar } from "@/billing-staff/components/ui/SearchBar";
 import { NotificationPanel } from "@/billing-staff/components/billing/NotificationPanel";
 import { QuickDailyCollectionModal } from "@/billing-staff/components/billing/QuickDailyCollectionModal";
 import { formatINR } from "@/billing-staff/lib/utils";
+import { signOutToRoot } from "@/lib/client-session";
 
 const ORG_TYPE_LABEL: Record<string, string> = {
   solo_doctor: "Solo Doctor",
@@ -591,6 +593,15 @@ export function Header({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
               </div>
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={() => signOutToRoot(router.push)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-2 py-1.5 text-xs font-bold text-ink-700 shadow-xs transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 sm:px-3"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden md:inline">Sign Out</span>
+          </button>
         </div>
 
       </div>

@@ -9,6 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { setCurrentRole } from "@/hospital-admin/store/slices/nursingOperationsSlice";
 import { AppUserRole } from "@/hospital-admin/lib/types/nursing-module";
 import { NURSING_STORAGE_KEY } from "@/hospital-admin/store/provider";
+import { signOutToRoot } from "@/lib/client-session";
 
 import { getNavigationForRole, getWorkspaceMetaForRole } from "@/hospital-admin/components/layout/nav-items";
 import { Avatar, AvatarFallback, AvatarImage } from "@/hospital-admin/components/ui/avatar";
@@ -293,7 +294,15 @@ export function SidebarNav({
 
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/hospital-admin/login" onClick={onNavigate} className="text-destructive focus:text-destructive">
+              <Link
+                href="/"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onNavigate?.();
+                  signOutToRoot(router.push);
+                }}
+                className="text-destructive focus:text-destructive"
+              >
                 <LogOut className="mr-2 h-4 w-4" /> Sign out
               </Link>
             </DropdownMenuItem>

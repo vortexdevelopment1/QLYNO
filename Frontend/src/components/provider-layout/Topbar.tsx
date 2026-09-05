@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowLeft, Bell, Building2, FileWarning, Hospital, ListT
 import GlobalSearch from "./GlobalSearch";
 import QuickActions from "./QuickActions";
 import { allNavItems } from "./nav-config";
+import { signOutToRoot } from "@/lib/client-session";
 import { clinicalAlerts, getPatient, matchesWorkContext } from "@/lib/mock-data";
 import { useMode } from "@/lib/mode-context";
 import { useDoctorWorkflow } from "@/lib/doctor-workflow-context";
@@ -156,7 +157,7 @@ export default function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
           )}
         </div>
         <QuickActions />
-        <button type="button" onClick={() => router.push("/sign-in")} className="btn-secondary hidden text-xs sm:inline-flex">
+        <button type="button" onClick={() => signOutToRoot(router.push)} className="btn-secondary hidden text-xs sm:inline-flex">
           <LogOut size={14} /> Sign Out
         </button>
       </div>
