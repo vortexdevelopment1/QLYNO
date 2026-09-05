@@ -11,7 +11,7 @@ import {
   ApiSyncSkippedError,
   createBackendPatient,
   deleteBackendPatient,
-  getBackendBootstrap,
+  getBackendPatients,
   updateBackendPatient,
 } from "@/lib/api-client";
 
@@ -21,6 +21,11 @@ const tagTone: Record<string, "brand" | "clay" | "alert" | "sage"> = {
   Critical: "alert",
   "Shared-care": "sage",
 };
+
+function birthDateFromAge(age: number) {
+  if (!Number.isFinite(age) || age <= 0) return undefined;
+  return `${new Date().getFullYear() - Math.floor(age)}-01-01`;
+}
 
 export default function PatientsPage() {
   const { selectedWorkplaceId, workContext } = useMode();
@@ -45,12 +50,12 @@ export default function PatientsPage() {
   useEffect(() => {
     let cancelled = false;
 
-    getBackendBootstrap()
+    getBackendPatients()
       .then((data) => {
         if (cancelled) return;
-        setPatientRows(data.patients);
-        if (data.doctors.length > 0) setDoctorRows(data.doctors);
-        setForm((prev) => ({ ...prev, doctorId: data.doctors[0]?.id ?? prev.doctorId }));
+        setPatientRows(data);
+        setDoctorRows(seedDoctors);
+        setForm((prev) => ({ ...prev, doctorId: seedDoctors[0]?.id ?? prev.doctorId }));
         setSyncMessage("Loaded backend patient data.");
       })
       .catch(() => {
@@ -164,19 +169,17 @@ export default function PatientsPage() {
       };
 
       try {
-        await updateBackendPatient(editingPatientId, {
+        const backendPatient = await updateBackendPatient(editingPatientId, {
           fullName: form.name,
           gender: form.gender.toUpperCase() as "MALE" | "FEMALE" | "OTHER",
           phone: form.phone,
           bloodGroup: form.bloodGroup,
           primaryDoctorId: form.doctorId,
         });
-        const data = await getBackendBootstrap();
-        setPatientRows(data.patients);
-        if (data.doctors.length > 0) setDoctorRows(data.doctors);
+        setPatientRows((prev) => prev.map((patient) => (patient.id === editingPatientId ? { ...backendPatient, primaryDoctorId: form.doctorId, bloodGroup: form.bloodGroup, conditions: form.condition ? [form.condition] : [] } : patient)));
         setSyncMessage("Patient changes synced to backend.");
       } catch (error) {
-        setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock patient updated locally." : "Backend sync failed; local patient update kept.");
+        setSyncMessage(error instanceof ApiSyncSkippedError ? "Mock patient updated locally." : `Backend sync failed: ${error instanceof Error ? error.message : "local patient update kept."}`);
         setPatientRows((prev) => prev.map((patient) => (patient.id === editingPatientId ? updatedPatient : patient)));
       }
       resetForm();
@@ -203,23 +206,22 @@ export default function PatientsPage() {
     };
     let savedToBackend = false;
     try {
-      await createBackendPatient({
+      const backendPatient = await createBackendPatient({
         qlynoId: `QLYNO-${Date.now()}`,
         fullName: form.name,
         gender: form.gender.toUpperCase() as "MALE" | "FEMALE" | "OTHER",
+        dateOfBirth: birthDateFromAge(Number(form.age)),
         phone: form.phone,
         bloodGroup: form.bloodGroup,
         primaryDoctorId: form.doctorId,
         workplaceId: selectedWorkplaceId,
         localMrn: nextPatient.mrn,
       });
-      const data = await getBackendBootstrap();
-      setPatientRows(data.patients);
-      if (data.doctors.length > 0) setDoctorRows(data.doctors);
+      setPatientRows((prev) => [{ ...backendPatient, primaryDoctorId: form.doctorId, bloodGroup: form.bloodGroup, conditions: form.condition ? [form.condition] : [] }, ...prev]);
       savedToBackend = true;
       setSyncMessage("Patient registration synced to backend.");
-    } catch {
-      setSyncMessage("Backend sync failed; local patient registration kept.");
+    } catch (error) {
+      setSyncMessage(`Backend sync failed: ${error instanceof Error ? error.message : "local patient registration kept."}`);
     }
     if (!savedToBackend) setPatientRows((prev) => [nextPatient, ...prev]);
     resetForm();

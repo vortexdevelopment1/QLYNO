@@ -23,7 +23,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isProviderShellRoute || isSelfManagedShellRoute) return;
-    if (sessionReady && !session && pathname !== "/login") router.replace("/login");
+    if (sessionReady && !session && pathname !== "/sign-in") router.replace("/sign-in");
     const legacyLabManagementRoutes: Record<string, string> = {
       "/administration/users": "/lab-management/team",
       "/administration/roles": "/lab-management/roles",

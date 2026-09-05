@@ -66,7 +66,7 @@ function reducer(s: EngineState, a: Action): EngineState {
   if (stage === "DELIVERY_CLOSURE") { const d = n.deliveries.find(v => !v.delivered); if (d) { d.delivered = true; e = makeEvent(s, "REPORT_DELIVERED", a.actor, { reportGroupId: d.reportGroupId }, a.reason ?? "Successful HMS delivery recorded"); } }
   if (!e) return s; n.events = [...s.events, e]; const after = snap(n); if (after.overallStage === "CLOSED" && !n.events.some(v => v.type === "ORDER_CLOSED")) n.events.push(makeEvent(n, "ORDER_CLOSED", "Qlyno workflow engine", {}, "All clinical closure requirements satisfied")); return n;
 }
-export interface CreateHospitalOrderInput { patientId: string; patientName: string; mrn: string; encounterId: string; orderingDoctor: string; priority: Priority; testIds: string[]; departmentIds: string[]; }
+export interface CreateHospitalOrderInput { backendOrderId?: string; patientId: string; patientName: string; mrn: string; encounterId: string; orderingDoctor: string; priority: Priority; testIds: string[]; departmentIds: string[]; }
 interface Value { workflow: HospitalWorkflowState; lifecycle: OrderLifecycleSnapshot; lifecycleEvents: LaboratoryLifecycleEvent[]; collectionTasks: CollectionTask[]; activeOrderItems: OrderItem[]; activeSpecimens: Specimen[]; dynamicOrders: Order[]; registeredPatients: RegisteredPatient[]; canAdvance: boolean; requiredRoles: LaboratoryRole[]; actionLabel: string; advance: (reason?: string) => void; confirmCollection: (taskId: string, specimenIds: string[], notes: string) => { ok: boolean; message?: string }; confirmReceipt: (orderId: string, specimenId: string, receipt: ReceiptInput) => { ok: boolean; message?: string }; accessionSpecimen: (orderId: string, specimenId: string) => { ok: boolean; message?: string }; rejectSpecimen: (orderId: string, specimenId: string, reason: string) => { ok: boolean; message?: string }; createHospitalOrder: (i: CreateHospitalOrderInput) => Order; registerHospitalPatient: (i: RegisterHospitalPatientInput) => RegisteredPatient; reset: () => void; }
 const Context = createContext<Value | null>(null);
 export function HospitalWorkflowProvider({ children }: { children: ReactNode }) {
@@ -78,7 +78,7 @@ export function HospitalWorkflowProvider({ children }: { children: ReactNode }) 
   const advance = (reason?: string) => { if (session && canAdvance) dispatch({ type: "NEXT", actor: session.userName, reason }); };
   const createHospitalOrder = (input: CreateHospitalOrderInput) => {
     if (!session) throw new Error("Authentication required");
-    const suffix = Date.now().toString().slice(-6); const orderId = `ORD-HMS-${suffix}`;
+    const suffix = Date.now().toString().slice(-6); const orderId = input.backendOrderId ?? `ORD-HMS-${suffix}`;
     const itemIds = input.testIds.map((_, i) => `OI-HMS-${suffix}-${i + 1}`);
     const order: Order = { id: orderId, patientId: input.patientId, patientName: input.patientName, source: "hospital_encounter", billingAuthority: "HMS_CENTRAL", priority: input.priority, status: "placed", reportStatus: "pending", hmsPostingStatus: "post_pending", orderingDoctor: input.orderingDoctor, siteId: session.activeSiteId, departmentIds: input.departmentIds, placedAt: new Date().toISOString(), itemIds };
     const orderItems: LifecycleOrderItem[] = itemIds.map((id, index) => ({ id, testId: input.testIds[index], specimenIds: [`SPX-HMS-${suffix}-${index + 1}`], status: "ORDERED", reportGroupId: `RG-HMS-${suffix}-${index + 1}` }));

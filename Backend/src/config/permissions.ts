@@ -5,7 +5,7 @@ export const EXTERNAL_ROLES: SystemRole[] = ["referring_clinician", "client_lab_
 
 const readCore = ["dashboard.read", "patients.read", "orders.read", "specimens.read", "reports.read"];
 export const ROLE_PERMISSIONS: Record<SystemRole, readonly string[]> = {
-  lab_director: [...readCore, "orders.write", "results.read", "results.write", "results.technical_review", "results.medical_validate", "reports.release", "quality.read", "quality.write", "inventory.read", "equipment.read", "logistics.read", "communications.read", "analytics.read", "audit.read"],
+  lab_director: [...readCore, "patients.write", "orders.write", "results.read", "results.write", "results.technical_review", "results.medical_validate", "reports.release", "quality.read", "quality.write", "inventory.read", "equipment.read", "logistics.read", "communications.read", "analytics.read", "audit.read"],
   quality_manager: ["dashboard.read", "orders.read", "specimens.read", "results.read", "reports.read", "quality.read", "quality.write", "quality.override", "audit.read"],
   section_supervisor: [...readCore, "results.read", "results.write", "results.technical_review", "quality.read", "quality.write", "workbench.write"],
   technologist: ["dashboard.read", "orders.read", "specimens.read", "specimen.accession", "results.read", "results.write", "workbench.write"],
@@ -15,7 +15,7 @@ export const ROLE_PERMISSIONS: Record<SystemRole, readonly string[]> = {
   reception_cashier: ["dashboard.read", "patients.read", "patients.write", "orders.read", "orders.write", "specimens.read", "reports.read", "billing.read", "billing.estimate", "billing.invoice", "billing.payment", "billing.refund", "communications.read", "communications.send"],
   inventory_procurement: ["dashboard.read", "inventory.read", "inventory.write", "equipment.read", "equipment.write"],
   tenant_admin: ["dashboard.read", "patients.read", "orders.read", "specimens.read", "results.read", "reports.read", "quality.read", "inventory.read", "equipment.read", "billing.read", "billing.contracts", "logistics.read", "communications.read", "communications.write", "analytics.read", "admin.users", "admin.roles", "admin.approvals", "audit.read", "integrations.manage"],
-  referring_clinician: ["patients.read.own", "orders.read.own", "reports.read.own"],
+  referring_clinician: ["patients.read", "patients.write", "orders.read.own", "reports.read.own"],
   client_lab_user: ["patients.read.client", "orders.read.client", "orders.write.client", "reports.read.client", "billing.read.client"],
   auditor: ["dashboard.read", "patients.read", "orders.read", "specimens.read", "results.read", "reports.read", "quality.read", "inventory.read", "billing.read", "communications.read", "analytics.read", "audit.read"]
 };

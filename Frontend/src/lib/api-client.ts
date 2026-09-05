@@ -44,6 +44,7 @@ function requireUuid(value: string, label: string) {
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),
@@ -53,7 +54,11 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(payload?.error ?? `Backend request failed: ${response.status}`);
+    const message =
+      typeof payload?.error === "string"
+        ? payload.error
+        : payload?.error?.message ?? `Backend request failed: ${response.status}`;
+    throw new Error(message);
   }
 
   return payload as T;
@@ -103,6 +108,105 @@ export function toIsoDateTime(date: string, time: string) {
 
 export async function getBackendHealth() {
   return requestJson<{ ok: boolean; database: "not_configured" | "ok" | "error" }>("/health");
+}
+
+export interface BackendLaboratoryCatalogItem {
+  id: string;
+  code: string;
+  name: string;
+  departmentId?: string | null;
+}
+
+export interface BackendLaboratoryPatient {
+  id: string;
+  mrn?: string | null;
+  name: string;
+  dateOfBirth?: string | null;
+  sex: "M" | "F" | "O";
+  contact: string;
+  source: string;
+  branchOrWard?: string | null;
+}
+
+export interface BackendLaboratoryEncounter {
+  id: string;
+  patientId: string;
+  encounterNo: string;
+  ward?: string | null;
+  bed?: string | null;
+  admittingDoctor?: string | null;
+  status: string;
+}
+
+export interface BackendLaboratoryOrder {
+  id: string;
+  patientId: string;
+  siteId: string;
+  encounterId?: string | null;
+  source: string;
+  priority: string;
+  status: string;
+  orderingDoctor: string;
+  placedAt: string;
+}
+
+export async function getBackendLaboratoryCatalog() {
+  const payload = await requestJson<{ data: BackendLaboratoryCatalogItem[] }>("/api/catalog");
+  return payload.data;
+}
+
+export async function createBackendLaboratoryPatient(input: {
+  mrn?: string;
+  name: string;
+  dateOfBirth?: string;
+  sex: "M" | "F" | "O";
+  contact: string;
+  source: "HOSPITAL_ENCOUNTER" | "WALK_IN" | "HOME_COLLECTION" | "B2B_CLIENT" | "INTERNAL_NO_CHARGE";
+  branchOrWard?: string;
+}) {
+  const payload = await requestJson<{ data: BackendLaboratoryPatient }>("/api/patients", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return payload.data;
+}
+
+export async function getBackendPatients() {
+  const payload = await requestJson<{ data: BackendLaboratoryPatient[] }>("/api/patients");
+  return payload.data.map(toFrontendPatientFromLaboratoryPatient);
+}
+
+export async function createBackendLaboratoryEncounter(input: {
+  patientId: string;
+  encounterNo: string;
+  ward?: string;
+  bed?: string;
+  admittingDoctor?: string;
+  status: string;
+}) {
+  const payload = await requestJson<{ data: BackendLaboratoryEncounter }>("/api/encounters", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return payload.data;
+}
+
+export async function createBackendLaboratoryOrder(input: {
+  siteId: string;
+  patientId: string;
+  encounterId?: string;
+  source: "HOSPITAL_ENCOUNTER" | "WALK_IN" | "HOME_COLLECTION" | "B2B_CLIENT" | "INTERNAL_NO_CHARGE";
+  priority: "ROUTINE" | "URGENT" | "STAT";
+  orderingDoctor: string;
+  collectionLocation: string;
+  scheduledAt?: string;
+  testIds: string[];
+}) {
+  const payload = await requestJson<{ data: BackendLaboratoryOrder }>("/api/orders", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return payload.data;
 }
 
 interface BackendLocation {
@@ -324,6 +428,38 @@ function frontendGender(gender: BackendPatient["gender"]): Patient["gender"] {
   if (gender === "FEMALE") return "Female";
   if (gender === "MALE") return "Male";
   return "Other";
+}
+
+function backendLaboratorySex(gender: "MALE" | "FEMALE" | "OTHER" | "UNKNOWN") {
+  if (gender === "MALE") return "M";
+  if (gender === "FEMALE") return "F";
+  return "O";
+}
+
+function frontendGenderFromLaboratorySex(sex: BackendLaboratoryPatient["sex"]): Patient["gender"] {
+  if (sex === "F") return "Female";
+  if (sex === "M") return "Male";
+  return "Other";
+}
+
+function toFrontendPatientFromLaboratoryPatient(patient: BackendLaboratoryPatient): Patient {
+  return {
+    id: patient.id,
+    mrn: patient.mrn ?? patient.id,
+    name: patient.name,
+    age: ageFromBirthDate(patient.dateOfBirth),
+    gender: frontendGenderFromLaboratorySex(patient.sex),
+    phone: patient.contact,
+    avatarInitials: initials(patient.name),
+    primaryDoctorId: "",
+    clinicId: "clinic-1",
+    workContexts: ["clinic"],
+    bloodGroup: "-",
+    allergies: [],
+    conditions: [],
+    lastVisit: "Backend",
+    tags: ["New"],
+  };
 }
 
 function frontendAppointmentType(mode: BackendAppointment["mode"]): AppointmentType {
@@ -818,16 +954,19 @@ export async function createBackendPatient(input: {
   workplaceId?: string;
   localMrn?: string;
 }) {
-  const body = {
-    ...input,
-    primaryDoctorId: isUuid(input.primaryDoctorId) ? input.primaryDoctorId : undefined,
-    workplaceId: isUuid(input.workplaceId) ? input.workplaceId : undefined,
-  };
-
-  return requestJson("/api/patients", {
+  const payload = await requestJson<{ data: BackendLaboratoryPatient }>("/api/patients", {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      mrn: input.localMrn || input.qlynoId,
+      name: input.fullName,
+      dateOfBirth: input.dateOfBirth,
+      sex: backendLaboratorySex(input.gender),
+      contact: input.phone || "Not added",
+      source: "WALK_IN",
+      branchOrWard: "Provider portal",
+    }),
   });
+  return toFrontendPatientFromLaboratoryPatient(payload.data);
 }
 
 export async function updateBackendPatient(
@@ -840,20 +979,18 @@ export async function updateBackendPatient(
     primaryDoctorId?: string;
   }
 ) {
-  requireUuid(id, "Patient id");
-
-  return requestJson(`/api/patients/${id}`, {
+  const payload = await requestJson<{ data: BackendLaboratoryPatient }>(`/api/patients/${id}`, {
     method: "PATCH",
     body: JSON.stringify({
-      ...input,
-      primaryDoctorId: isUuid(input.primaryDoctorId) ? input.primaryDoctorId : undefined,
+      name: input.fullName,
+      sex: input.gender ? backendLaboratorySex(input.gender) : undefined,
+      contact: input.phone || undefined,
     }),
   });
+  return toFrontendPatientFromLaboratoryPatient(payload.data);
 }
 
 export async function deleteBackendPatient(id: string) {
-  requireUuid(id, "Patient id");
-
   return requestJson(`/api/patients/${id}`, {
     method: "DELETE",
   });

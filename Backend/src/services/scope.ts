@@ -12,6 +12,7 @@ export function orderReadScope(context: RequestContext): Prisma.LaboratoryOrderW
   return base;
 }
 export function patientReadScope(context: RequestContext): Prisma.PatientWhereInput {
+  if (context.permissions.includes("patients.read")) return { tenantId: context.tenantId };
   if (context.roles.includes("referring_clinician") || context.roles.includes("client_lab_user")) return { tenantId: context.tenantId, orders: { some: orderReadScope(context) } };
   return { tenantId: context.tenantId };
 }

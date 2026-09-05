@@ -15,6 +15,12 @@ import { resolveBillingAuthority, ORDER_SOURCE_LABEL } from "@/config/tenant-mod
 import type { OrderSource, Priority } from "@/lib/types/domain";
 import { useHospitalWorkflow } from "@/state/hospital-workflow-context";
 import { PatientSearchRegistration } from "@/components/domain/PatientSearchRegistration";
+import {
+  createBackendLaboratoryEncounter,
+  createBackendLaboratoryOrder,
+  createBackendLaboratoryPatient,
+  getBackendLaboratoryCatalog,
+} from "@/lib/api-client";
 
 const STEPS = [
   { id: "patient", label: "Patient" },
@@ -38,6 +44,7 @@ export default function NewOrderPage() {
   const [selectedTests, setSelectedTests] = useState<string[]>([MOCK_CATALOG[0].id]);
   const [priority, setPriority] = useState<Priority>("routine");
   const [consentAck, setConsentAck] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const registeredPatient = registeredPatients.find((patient) => patient.id === patientId);
   const patient = registeredPatient ? { id: registeredPatient.id, name: registeredPatient.displayName, mrn: registeredPatient.hospitalMrn, age: registeredPatient.dateOfBirth ? new Date().getFullYear() - new Date(registeredPatient.dateOfBirth).getFullYear() : registeredPatient.estimatedAge?.value ?? 0, sex: registeredPatient.sexAtBirth === "MALE" ? "M" as const : registeredPatient.sexAtBirth === "FEMALE" ? "F" as const : "O" as const, contact: registeredPatient.primaryMobile ?? "", source: "hospital_encounter" as const } : MOCK_PATIENTS.find((p) => p.id === patientId);
@@ -48,12 +55,87 @@ export default function NewOrderPage() {
     setSelectedTests((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
-  function placeOrder() {
-    if (session?.billingOwner !== "HMS_CENTRAL" || !patient) return;
+  async function ensureBackendPatientContext() {
+    if (!patient) throw new Error("Select a patient before placing the order.");
+
     const encounter = MOCK_ENCOUNTERS.find((item) => item.patientId === patient.id);
-    const order = createHospitalOrder({ patientId: patient.id, patientName: patient.name, mrn: patient.mrn ?? patient.id, encounterId: encounter?.id ?? `ENC-${Date.now().toString().slice(-5)}`, orderingDoctor: encounter?.admittingDoctor ?? "HMS ordering clinician", priority, testIds: tests.map((test) => test.id), departmentIds: Array.from(new Set(tests.map((test) => test.department))) });
-    showToast({ title: "Hospital order created", description: `${order.id} is now visible in Orders and ready for confirmation.`, tone: "success" });
-    router.push(`/orders/${order.id}`);
+    if (patient.id === "PAT-1001") {
+      return {
+        patientId: "PAT-1001",
+        patientName: patient.name,
+        mrn: patient.mrn ?? patient.id,
+        encounterId: "ENC-501",
+        orderingDoctor: "Dr. Ananya Rao",
+        collectionLocation: "Ward 4B / Bed 12",
+      };
+    }
+
+    const backendPatient = await createBackendLaboratoryPatient({
+      mrn: registeredPatient?.hospitalMrn ?? patient.mrn,
+      name: registeredPatient?.displayName ?? patient.name,
+      dateOfBirth: registeredPatient?.dateOfBirth ?? mockDateOfBirth(patient.age),
+      sex: registeredPatient ? sexAtBirthToBackendSex(registeredPatient.sexAtBirth) : patient.sex,
+      contact: registeredPatient?.primaryMobile ?? patient.contact,
+      source: "HOSPITAL_ENCOUNTER",
+      branchOrWard: registeredPatient?.ward ? `${registeredPatient.ward}${registeredPatient.bed ? ` / ${registeredPatient.bed}` : ""}` : patient.branchOrWard,
+    });
+    const backendEncounter = await createBackendLaboratoryEncounter({
+      patientId: backendPatient.id,
+      encounterNo: registeredPatient?.encounterNumber ?? encounter?.encounterNo ?? `ENC-${Date.now().toString().slice(-5)}`,
+      ward: registeredPatient?.ward ?? encounter?.ward ?? "Laboratory",
+      bed: registeredPatient?.bed ?? encounter?.bed,
+      admittingDoctor: encounter?.admittingDoctor ?? "HMS ordering clinician",
+      status: "ACTIVE",
+    });
+
+    return {
+      patientId: backendPatient.id,
+      patientName: backendPatient.name,
+      mrn: backendPatient.mrn ?? backendPatient.id,
+      encounterId: backendEncounter.id,
+      orderingDoctor: backendEncounter.admittingDoctor ?? "HMS ordering clinician",
+      collectionLocation: backendPatient.branchOrWard ?? "Ward collection",
+    };
+  }
+
+  async function placeOrder() {
+    if (session?.billingOwner !== "HMS_CENTRAL" || !patient || saving) return;
+    setSaving(true);
+    try {
+      const backendCatalog = await getBackendLaboratoryCatalog();
+      const backendTestIds = tests.map((test) => backendCatalog.find((item) => item.code === test.code)?.id);
+      const missingTests = tests.filter((_test, index) => !backendTestIds[index]).map((test) => test.code);
+      if (missingTests.length) throw new Error(`Selected tests are not present in the backend catalog: ${missingTests.join(", ")}`);
+
+      const backendContext = await ensureBackendPatientContext();
+      const backendOrder = await createBackendLaboratoryOrder({
+        siteId: session.activeSiteId,
+        patientId: backendContext.patientId,
+        encounterId: backendContext.encounterId,
+        source: "HOSPITAL_ENCOUNTER",
+        priority: priority.toUpperCase() as "ROUTINE" | "URGENT" | "STAT",
+        orderingDoctor: backendContext.orderingDoctor,
+        collectionLocation: backendContext.collectionLocation,
+        testIds: backendTestIds as string[],
+      });
+      const order = createHospitalOrder({
+        backendOrderId: backendOrder.id,
+        patientId: backendContext.patientId,
+        patientName: backendContext.patientName,
+        mrn: backendContext.mrn,
+        encounterId: backendContext.encounterId,
+        orderingDoctor: backendContext.orderingDoctor,
+        priority,
+        testIds: tests.map((test) => test.id),
+        departmentIds: Array.from(new Set(tests.map((test) => test.department))),
+      });
+      showToast({ title: "Hospital order saved", description: `${order.id} was saved to the backend database.`, tone: "success" });
+      router.push(`/orders/${order.id}`);
+    } catch (error) {
+      showToast({ title: "Database save failed", description: error instanceof Error ? error.message : "Could not save the order.", tone: "warning" });
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -202,12 +284,22 @@ export default function NewOrderPage() {
               Continue
             </Button>
           ) : (
-            <Button size="sm" onClick={placeOrder} disabled={!consentAck} disabledReason="Confirm preparation & consent review before placing the order.">
-              Place order
+            <Button size="sm" onClick={placeOrder} disabled={!consentAck || saving} disabledReason="Confirm preparation & consent review before placing the order.">
+              {saving ? "Saving..." : "Place order"}
             </Button>
           )}
         </div>
       </Card>
     </div>
   );
+}
+
+function mockDateOfBirth(age: number) {
+  return `${new Date().getFullYear() - age}-01-01`;
+}
+
+function sexAtBirthToBackendSex(value: string): "M" | "F" | "O" {
+  if (value === "MALE") return "M";
+  if (value === "FEMALE") return "F";
+  return "O";
 }

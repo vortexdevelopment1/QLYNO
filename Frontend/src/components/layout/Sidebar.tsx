@@ -235,7 +235,7 @@ export function Sidebar() {
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           showCollapseControl
-          onSignOut={() => { logout(); router.push("/login"); }}
+          onSignOut={() => { logout(); router.push("/sign-in"); }}
         />
       </aside>
 
@@ -252,7 +252,7 @@ export function Sidebar() {
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
-            <SidebarContent collapsed={false} onNavigate={() => setMobileNavOpen(false)} onSignOut={() => { logout(); setMobileNavOpen(false); router.push("/login"); }} />
+            <SidebarContent collapsed={false} onNavigate={() => setMobileNavOpen(false)} onSignOut={() => { logout(); setMobileNavOpen(false); router.push("/sign-in"); }} />
           </div>
         </div>
       )}

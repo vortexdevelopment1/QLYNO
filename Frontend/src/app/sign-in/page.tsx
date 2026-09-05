@@ -54,6 +54,15 @@ const roleOptions: Array<{
     target: "/billing-staff/dashboard",
     icon: CreditCard,
   },
+  // Laboratory login is hidden for now. Re-enable this card when the module should appear on the login page.
+  // {
+  //   id: "laboratory",
+  //   title: "Laboratory",
+  //   description: "Laboratory dashboard, orders, accessioning, workbench, results, quality and inventory.",
+  //   email: "lab@qlyno.health",
+  //   target: "/dashboard",
+  //   icon: FlaskConical,
+  // },
 ];
 
 function persistRole(role: LoginRole) {
